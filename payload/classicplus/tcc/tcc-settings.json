@@ -1,0 +1,1435 @@
+{
+  "LastRun": "2026-08-30T10:19:12.8484579+02:00",
+  "LastLanguage": "EU-EN",
+  "LastScreenSize": "3440, 1440",
+  "StatSentTime": "0001-01-01T00:00:00",
+  "StatSentVersion": "TCC v2.0.31",
+  "LanguageOverride": 0,
+  "ShowTradeLfg": true,
+  "UseHotkeys": true,
+  "EthicalMode": false,
+  "HideHandles": false,
+  "HighPriority": false,
+  "ForceSoftwareRendering": true,
+  "Npcap": true,
+  "ShowIngameChat": false,
+  "CheckOpcodesHash": true,
+  "CheckGuildBamWithoutOpcode": false,
+  "BetaNotification": true,
+  "FpsAtGuardian": true,
+  "IntegratedGpuSleepWorkaround": false,
+  "EnableProxy": true,
+  "DontShowFUBH": false,
+  "AbnormalityShape": 0,
+  "SkillShape": 0,
+  "CaptureMode": 0,
+  "MentionMode": 2,
+  "LfgHotkey": {
+    "Key": 89,
+    "Modifier": 2
+  },
+  "DashboardHotkey": {
+    "Key": 73,
+    "Modifier": 2
+  },
+  "SettingsHotkey": {
+    "Key": 79,
+    "Modifier": 2
+  },
+  "SkillSettingsHotkey": {
+    "Key": 75,
+    "Modifier": 2
+  },
+  "ForceClickableChatHotkey": {
+    "Key": 67,
+    "Modifier": 3
+  },
+  "ReturnToLobbyHotkey": {
+    "Key": 82,
+    "Modifier": 3
+  },
+  "ToggleBoundariesHotkey": {
+    "Key": 72,
+    "Modifier": 3
+  },
+  "ToggleHideAllHotkey": {
+    "Key": 90,
+    "Modifier": 3
+  },
+  "AbnormalSettingsHotkey": {
+    "Key": 66,
+    "Modifier": 2
+  },
+  "WebhookEnabledFieldBoss": false,
+  "WebhookUrlFieldBoss": "",
+  "WebhookMessageFieldBossSpawn": "@here {bossName} spawned in {regionName}!",
+  "WebhookMessageFieldBossDie": "{bossName} is dead.",
+  "WebhookEnabledGuildBam": false,
+  "WebhookUrlGuildBam": "",
+  "WebhookMessageGuildBam": "@here Guild BAM will spawn soon!",
+  "WebhookEnabledMentions": false,
+  "WebhookUrlMentions": "",
+  "CooldownWindowSettings": {
+    "ShowItems": true,
+    "Mode": 0,
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.5,
+    "MaxOpacity": 1.0,
+    "Scale": 1.23,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.3758720930232558,0.7083333333333334",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0.4,0.7",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "CharacterWindowSettings": {
+    "CompactMode": true,
+    "SorcererShowElements": false,
+    "WarriorShowEdge": false,
+    "ShowStamina": true,
+    "CustomLaurel": 1,
+    "ChooseCustomLaurelCommand": {},
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.5,
+    "MaxOpacity": 1.0,
+    "Scale": 1.05,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.3555232558139535,0.7923611111111111",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.4,0.8770833333333333",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0.4,1",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "NpcWindowSettings": {
+    "HideAdds": false,
+    "AccurateHp": true,
+    "EnrageLabelMode": 1,
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": true,
+    "DimOpacity": 0.5,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Lancer": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Slayer": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Berserker": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Sorcerer": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Archer": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Priest": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Mystic": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Reaper": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Gunner": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Brawler": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Ninja": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Valkyrie": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "Common": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        },
+        "None": {
+          "Position": "0.3918604651162791,0.004166666666666667",
+          "Buttons": 1
+        }
+      }
+    }
+  },
+  "BuffWindowSettings": {
+    "ShowAll": true,
+    "Direction": 1,
+    "Overlap": 0.0,
+    "MyAbnormals": {},
+    "Specials": [],
+    "Hidden": [],
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.5,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.050872093023255814,0.7715277777777778",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.7093023255813954,0.7",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "1,0.7",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "ClassWindowSettings": {
+    "WarriorShowEdge": true,
+    "WarriorShowInfuriate": false,
+    "ValkyrieShowRagnarok": false,
+    "ValkyrieShowGodsfall": false,
+    "SorcererShowElements": false,
+    "WarriorShowTraverseCut": true,
+    "FlashAvailableSkills": true,
+    "WarriorEdgeMode": 1,
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.5,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.3200581395348837,0.7395833333333334",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0.25,0.6",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "GroupWindowSettings": {
+    "HpLabelMode": 2,
+    "IgnoreMe": false,
+    "HideBuffsThreshold": 7,
+    "HideDebuffsThreshold": 7,
+    "HideHpThreshold": 7,
+    "HideMpThreshold": 7,
+    "HideStThreshold": 0,
+    "DisableAbnormalitiesThreshold": 7,
+    "DisableAbnormalitiesAnimationThreshold": 0,
+    "GroupSizeThreshold": 7,
+    "Layout": 0,
+    "ShowAwakenIcon": true,
+    "ShowDetails": true,
+    "ShowLaurels": false,
+    "ShowOnlyAggroStacks": true,
+    "ShowAllAbnormalities": false,
+    "GroupAbnormals": {},
+    "Hidden": [],
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.5,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 561.0,
+    "H": 168.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.00436046511627907,0.6715277777777777",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0,0",
+          "Buttons": 1
+        },
+        "None": {
+          "Position": "0,0",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "FlightGaugeWindowSettings": {
+    "Flip": false,
+    "Rotation": 0.0,
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 1.0,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0.5,0.5",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "FloatingButtonSettings": {
+    "ShowNotificationBubble": true,
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": true,
+    "AutoDim": false,
+    "DimOpacity": 1.0,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0,0",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "CivilUnrestWindowSettings": {
+    "Enabled": false,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": true,
+    "DimOpacity": 0.5,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0.9994186046511628,0.45",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.925,0.45",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "LfgWindowSettings": {
+    "HideTradeListings": false,
+    "MinLevel": 1,
+    "MaxLevel": 70,
+    "Enabled": false,
+    "HideIngameUI": true,
+    "Visible": false,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.0,
+    "MaxOpacity": 1.0,
+    "Scale": 0.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0,0",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "NotificationAreaSettings": {
+    "MaxNotifications": 5,
+    "DefaultNotificationDuration": 5,
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": true,
+    "ShowAlways": true,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 1.0,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.4578488372093023,0.027777777777777776",
+          "Buttons": 1
+        },
+        "None": {
+          "Position": "0,0.5",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "PerfMonitorSettings": {
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": false,
+    "ShowAlways": true,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 1.0,
+    "MaxOpacity": 1.0,
+    "Scale": 1.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.9651162790697675,0.45",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "1,0.45",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "LootDistributionWindowSettings": {
+    "AutorollDelaySec": 10,
+    "RollHotKey": {
+      "Key": 33,
+      "Modifier": 0
+    },
+    "PassHotKey": {
+      "Key": 34,
+      "Modifier": 0
+    },
+    "ToggleHotkey": {
+      "Key": 76,
+      "Modifier": 2
+    },
+    "AlwaysRoll": false,
+    "AlwaysPass": false,
+    "AutoShowUponRoll": true,
+    "AutoRollItemsBlacklistMode": false,
+    "AutoPassItemsBlacklistMode": false,
+    "AutoRollItems": [],
+    "AutoPassItems": [],
+    "Enabled": true,
+    "HideIngameUI": true,
+    "Visible": false,
+    "ShowAlways": true,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.0,
+    "MaxOpacity": 1.0,
+    "Scale": 0.0,
+    "W": 310.0,
+    "H": 294.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0.12674418604651164,0.6993055555555555",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0,0",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "ChatWindowsSettings": [],
+  "ChatSettings": {
+    "Enabled": false,
+    "HideIngameUI": true,
+    "Visible": false,
+    "ShowAlways": false,
+    "AllowOffScreen": false,
+    "AutoDim": false,
+    "DimOpacity": 0.0,
+    "MaxOpacity": 1.0,
+    "Scale": 0.0,
+    "W": 0.0,
+    "H": 0.0,
+    "ClickThruMode": 0,
+    "Positions": {
+      "Classes": {
+        "Warrior": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Lancer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Slayer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Berserker": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Sorcerer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Archer": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Priest": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Mystic": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Reaper": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Gunner": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Brawler": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Ninja": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Valkyrie": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "Common": {
+          "Position": "0,0",
+          "Buttons": 0
+        },
+        "None": {
+          "Position": "0,0",
+          "Buttons": 0
+        }
+      }
+    }
+  },
+  "ChatEnabled": false,
+  "DisableLfgChatMessages": true,
+  "ShowChannel": true,
+  "ShowTimestamp": true,
+  "ChatTimestampSeconds": false,
+  "AnimateChatMessages": false,
+  "MaxMessages": 500,
+  "SpamThreshold": 2,
+  "FontSize": 15,
+  "ChatScrollAmount": 1,
+  "UserExcludedSysMsg": [],
+  "TranslationMode": 1,
+  "LastAccountNameHash": "",
+  "BackgroundNotifications": false,
+  "EnablePlayerMenu": false,
+  "CooldownsDecimalMode": 2,
+  "AbnormalitySettings": {
+    "Favorites": [],
+    "Self": {
+      "Collapsible": [],
+      "ShowAll": true,
+      "Whitelist": {
+        "Warrior": [
+          100800,
+          100801
+        ],
+        "Lancer": [
+          200230,
+          200231,
+          200232,
+          201701
+        ],
+        "Slayer": [
+          300800,
+          300801,
+          300805
+        ],
+        "Berserker": [
+          401705,
+          401706,
+          401710,
+          400500,
+          400501,
+          400508,
+          400710,
+          400711
+        ],
+        "Sorcerer": [
+          21170,
+          22120,
+          23180,
+          26250,
+          29011,
+          25170,
+          25171,
+          25201,
+          25202,
+          500100,
+          500150,
+          501600,
+          501650,
+          502001,
+          502051,
+          502070,
+          502071,
+          502072
+        ],
+        "Archer": [
+          601400,
+          601450,
+          601460,
+          88608101,
+          88608102,
+          88608103,
+          88608104,
+          88608105,
+          88608106,
+          88608107,
+          88608108,
+          88608109,
+          88608110,
+          602101,
+          602102,
+          602103,
+          601611
+        ],
+        "Priest": [],
+        "Mystic": [],
+        "Reaper": [
+          10151010,
+          10151131,
+          10151192
+        ],
+        "Gunner": [
+          89105101,
+          89105102,
+          89105103,
+          89105104,
+          89105105,
+          89105106,
+          89105107,
+          89105108,
+          89105109,
+          89105110,
+          89105111,
+          89105112,
+          89105113,
+          89105114,
+          89105115,
+          89105116,
+          89105117,
+          89105118,
+          89105119,
+          89105120,
+          10152340,
+          10152351
+        ],
+        "Brawler": [
+          31020,
+          10153210
+        ],
+        "Ninja": [
+          89314201,
+          89314202,
+          89314203,
+          89314204,
+          89314205,
+          89314206,
+          89314207,
+          89314208,
+          89314209,
+          89314210,
+          89314211,
+          89314212,
+          89314213,
+          89314214,
+          89314215,
+          89314216,
+          89314217,
+          89314218,
+          89314219,
+          89314220,
+          10154480,
+          10154450
+        ],
+        "Valkyrie": [
+          10155130,
+          10155551,
+          10155510,
+          10155512,
+          10155540,
+          10155541,
+          10155542
+        ],
+        "Common": [
+          6001,
+          6002,
+          6003,
+          6004,
+          6012,
+          6013,
+          702004,
+          805800,
+          805803,
+          200700,
+          200701,
+          200731,
+          800300,
+          800301,
+          800302,
+          800303,
+          800304,
+          702001
+        ],
+        "None": []
+      }
+    },
+    "Group": {
+      "Collapsible": [],
+      "ShowAll": false,
+      "Whitelist": {
+        "Warrior": [],
+        "Lancer": [],
+        "Slayer": [],
+        "Berserker": [],
+        "Sorcerer": [],
+        "Archer": [],
+        "Priest": [],
+        "Mystic": [],
+        "Reaper": [],
+        "Gunner": [],
+        "Brawler": [],
+        "Ninja": [],
+        "Valkyrie": [],
+        "Common": [],
+        "None": []
+      }
+    }
+  }
+}
