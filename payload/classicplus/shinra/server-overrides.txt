@@ -1,0 +1,22 @@
+###########################################################
+# Additional servers merged on top of resources/data/servers.txt
+# at startup by BasicTeraData.cs.
+#
+# Format: IP Region ServerName
+#
+# "Classic+" region code = "EUC" (EU-Classic key family, same as
+# legacy EU Classic). ReleaseVersion is pinned to 10002 (v100.02) by
+# C_LOGIN_ARBITER.cs.
+#
+# Lines starting with '#' are ignored.
+###########################################################
+
+# Launcher-provided mirror socket. ClassicPlusSniffer connects to
+# 127.0.0.1:7803 and presents decrypted frames; the "server IP" Shinra
+# logs is therefore the loopback address, not the real game server.
+127.0.0.1 EUC Classic+
+
+# Real Classic+ gameserver fronted by the same host that serves the
+# portal API at :8090. Useful if a future release ever supports direct
+# capture instead of the mirror socket.
+88.99.102.67 EUC Classic+
