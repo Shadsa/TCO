@@ -30,8 +30,7 @@
     "DrawStatsHeuristic": 2,
     "FilterFormat": 4,
     "FilterFormatName": "D24S8",
-    "FilterResolutionWidth": 3440,
-    "FilterResolutionHeight": 1440,
+    "FilterResolution": "Detected from the active primary display during installation",
     "UseAspectRatioHeuristics": 3
   },
   "Engine": {
@@ -50,27 +49,42 @@
     "ShinraAudioMuted": true,
     "ShinraPasteKey": "Ctrl+Home"
   },
-  "FileCount": 73,
+  "FileCount": 79,
   "Files": [
     {
       "Path": "Install-TERA-Complete.ps1",
-      "Bytes": 21380,
-      "SHA256": "60858EADA1B4AE3290DF705449A8F5134770A3DE0D0D606ECAF3D4D145E89835"
+      "Bytes": 21756,
+      "SHA256": "91CD0A41CC1D69819EF15E17B6E3887CC6B148A1ED73A96B06383CBDFB10A62D"
     },
     {
       "Path": "Install.cmd",
-      "Bytes": 206,
-      "SHA256": "37642526F92B6AEF4EE0B7C2F3CB374C9E5C3344A3D007ABF8CC25C439F67D9B"
+      "Bytes": 374,
+      "SHA256": "C1CC5F2A2CAF5A79337B0473E03132D31F3524590E4CF8EB25E21AB027A636A8"
+    },
+    {
+      "Path": "LICENSE",
+      "Bytes": 35149,
+      "SHA256": "3972DC9744F6499F0F9B2DBF76696F2AE7AD8AF9B23DDE66D6AF86C9DFB36986"
     },
     {
       "Path": "modules/apply_tera_final_stable.ps1",
-      "Bytes": 9991,
-      "SHA256": "7ACB1999209F5A227149E82D83C939AC6D74F40789B2AF7C64A27F5BFE1BE14A"
+      "Bytes": 5482,
+      "SHA256": "1E3AFDBA8EAA7406D89CA5E9367ECA9EE80A14B448E04AB25670130289C00D34"
+    },
+    {
+      "Path": "modules/display_resolution.ps1",
+      "Bytes": 2811,
+      "SHA256": "71D43AF788F4157F3B0E7E2D756F769ACD20EF6A1DF24E1C11145986237631AA"
+    },
+    {
+      "Path": "modules/engine_profile.ps1",
+      "Bytes": 3508,
+      "SHA256": "83D6B30FCBB1BCB5333AF24426A4A00D6D63AD3640FCDD338492C34B52463220"
     },
     {
       "Path": "modules/tera_graphics_pipeline.ps1",
-      "Bytes": 16962,
-      "SHA256": "DE4C3CCD774C1D6D74D3A2407831E1F450565981F21B63391D278A9D0298FDA8"
+      "Bytes": 23086,
+      "SHA256": "376780CE28EEC01C372BC8A0FCEC60E522FDA92742507E42350C67BBF48642A2"
     },
     {
       "Path": "payload/classicplus/shinra/hotkeys.xml",
@@ -96,6 +110,11 @@
       "Path": "payload/classicplus/tcc/tcc-settings.json",
       "Bytes": 32356,
       "SHA256": "B4AD8B240BC5F92F9EB920FD6FD6522AC4D13BB307AD325C84FA030F70D13FBB"
+    },
+    {
+      "Path": "payload/engine-profile.json",
+      "Bytes": 5357,
+      "SHA256": "D785332932C91931CD2839E430BDC47EBA83383C52BEA975E50145C602DC9FCB"
     },
     {
       "Path": "payload/dxvk/d3d9.dll",
@@ -409,13 +428,23 @@
     },
     {
       "Path": "README.md",
-      "Bytes": 3273,
-      "SHA256": "54402C67516510E7F336C0D5EF534AB50B150A6484F63159316A0239CF5A029A"
+      "Bytes": 5672,
+      "SHA256": "376EAABC0EFFB9EF4F472694FD9A276ED6DE8B67452AD8797BE14CD8B752183C"
     },
     {
       "Path": "SOURCES.md",
       "Bytes": 618,
       "SHA256": "0E41CEE876557350DA3832D7BAB10886E84CA5232518E0615C38A549124628E5"
+    },
+    {
+      "Path": "Start-TCO.ps1",
+      "Bytes": 1836,
+      "SHA256": "E725A0630668C337CA786B86722E2511184148D7C480264CA1F3C59F36E2E1D6"
+    },
+    {
+      "Path": "Update-TCO.ps1",
+      "Bytes": 13833,
+      "SHA256": "4626E09D4D5346E5CCAFCAE1E15530FA572917DECD07097257AC204D56025F02"
     }
   ]
 }

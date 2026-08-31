@@ -2,7 +2,7 @@
 
 param(
     [Parameter(Mandatory = $false)]
-    [ValidateSet('Enable', 'Disable', 'Restore', 'Status')]
+    [ValidateSet('Validate', 'Enable', 'Disable', 'Restore', 'Status')]
     [string]$Action = 'Status',
 
     [Parameter(Mandatory = $false)]
@@ -48,9 +48,24 @@ $systemSettings = Join-Path $TeraRoot 'S1Game\Config\S1SystemSettings.ini'
 $payloadConfig = Join-Path $payloadRoot 'ReShade.ini'
 $payloadPreset = Join-Path $payloadRoot 'TERA_Natural_Clarity.ini'
 $payloadShaders = Join-Path $payloadRoot 'reshade-shaders'
+$portableEngineProfile = Join-Path $packageRoot 'payload\engine-profile.json'
+$engineProfilePath = if (Test-Path -LiteralPath $portableEngineProfile -PathType Leaf) {
+    $portableEngineProfile
+} else {
+    Join-Path $toolsRoot 'payload\engine-profile.json'
+}
 $legacyState = Join-Path $toolsRoot 'tera-reshade-state.json'
 $proxyState = Join-Path $toolsRoot 'tera-reshade-proxy-state.json'
 $backupRoot = Join-Path $toolsRoot 'tera-reshade-original'
+$displayResolutionScript = Join-Path $PSScriptRoot 'display_resolution.ps1'
+$engineProfileSupport = Join-Path $PSScriptRoot 'engine_profile.ps1'
+$engineFileMap = [ordered]@{
+    'S1Engine.ini' = Join-Path $TeraRoot 'S1Game\Config\S1Engine.ini'
+    'S1SystemSettings.ini' = $systemSettings
+    'S1Option.ini' = Join-Path $TeraRoot 'S1Game\Config\S1Option.ini'
+    'BaseInput.ini' = Join-Path $TeraRoot 'Engine\Config\BaseInput.ini'
+    'S1Input.ini' = Join-Path $TeraRoot 'S1Game\Config\S1Input.ini'
+}
 $layer64Path = 'HKLM:\SOFTWARE\Khronos\Vulkan\ImplicitLayers'
 $layer32Path = 'HKLM:\SOFTWARE\WOW6432Node\Khronos\Vulkan\ImplicitLayers'
 $layer64Name = 'C:\ProgramData\ReShade\ReShade64.json'
@@ -188,6 +203,7 @@ function Get-OriginalFXAA {
 
 function Save-ProxyState {
     if (Test-Path -LiteralPath $proxyState -PathType Leaf) { return }
+    New-Item -ItemType Directory -Path $toolsRoot -Force | Out-Null
     $activeKind = Get-DllKind $activeD3D9
     $dxvkPath = if ($activeKind -eq 'DXVK') {
         $activeD3D9
@@ -230,9 +246,78 @@ function Assert-BaseFiles {
     }
 }
 
+function Assert-GraphicsPayload {
+    Assert-BaseFiles
+    if ((Get-DllKind $reShadeSource) -ne 'ReShade') {
+        throw "Bundled ReShade runtime is invalid or unrecognized: $reShadeSource"
+    }
+    if ((Get-DllKind $dxvkSource) -ne 'DXVK') {
+        throw "Bundled DXVK runtime is invalid or unrecognized: $dxvkSource"
+    }
+    $resolution = Get-PrimaryDisplayResolution
+    Write-Host "Graphics payload validated for primary display $($resolution.Width)x$($resolution.Height)."
+}
+
+function Assert-ProxyPipelineInstalled {
+    $issues = [System.Collections.Generic.List[string]]::new()
+    $state = Get-ProxyState
+    if ($null -eq $state) {
+        [void]$issues.Add('Proxy state was not created.')
+    }
+    if ((Get-DllKind $activeD3D9) -ne 'ReShade') {
+        [void]$issues.Add('Binaries\d3d9.dll is not ReShade.')
+    }
+    if ((Get-DllKind $proxyDXVK) -ne 'DXVK') {
+        [void]$issues.Add('Binaries\d3d9_dxvk.dll is not DXVK.')
+    }
+    if ($null -ne $state -and (Test-Path -LiteralPath $activeD3D9 -PathType Leaf)) {
+        $activeHash = (Get-FileHash -LiteralPath $activeD3D9 -Algorithm SHA256).Hash
+        $expectedReShadeHash = (Get-FileHash -LiteralPath $reShadeSource -Algorithm SHA256).Hash
+        if ($activeHash -ne $expectedReShadeHash) {
+            [void]$issues.Add('Installed ReShade hash does not match the bundled runtime.')
+        }
+    }
+    if ($null -ne $state -and (Test-Path -LiteralPath $proxyDXVK -PathType Leaf)) {
+        $proxyHash = (Get-FileHash -LiteralPath $proxyDXVK -Algorithm SHA256).Hash
+        if ($proxyHash -ne [string]$state.DXVKSHA256) {
+            [void]$issues.Add('Installed DXVK hash does not match the recorded source runtime.')
+        }
+    }
+    if ((Get-IniValue -Path $reShadeConfig -Section 'PROXY' -Key 'EnableProxyLibrary') -ne '1') {
+        [void]$issues.Add('ReShade proxy loading is not enabled.')
+    }
+    if ((Get-IniValue -Path $reShadeConfig -Section 'PROXY' -Key 'ProxyLibrary') -ine '.\d3d9_dxvk.dll') {
+        [void]$issues.Add('ReShade does not target d3d9_dxvk.dll.')
+    }
+    $resolution = Get-PrimaryDisplayResolution
+    if ((Get-IniValue -Path $reShadeConfig -Section 'DEPTH' -Key 'FilterResolutionWidth') -ne [string]$resolution.Width -or
+        (Get-IniValue -Path $reShadeConfig -Section 'DEPTH' -Key 'FilterResolutionHeight') -ne [string]$resolution.Height) {
+        [void]$issues.Add('Generic Depth resolution does not match the primary display.')
+    }
+    if ((Get-IniValue -Path $systemSettings -Section 'SystemSettings' -Key 'FXAA') -ine $managedFXAA) {
+        [void]$issues.Add("TERA FXAA does not match the engine profile value '$managedFXAA'.")
+    }
+    foreach ($path in @($reShadeConfig, $reShadePreset, $reShadeShaders)) {
+        if (-not (Test-Path -LiteralPath $path)) {
+            [void]$issues.Add("Installed ReShade artifact is missing: $path")
+        }
+    }
+    $layer64 = Get-LayerValue -RegistryPath $layer64Path -Name $layer64Name
+    $layer32 = Get-LayerValue -RegistryPath $layer32Path -Name $layer32Name
+    if ($null -ne $layer64 -and $layer64 -ne 1) {
+        [void]$issues.Add('The global ReShade Vulkan 64-bit layer was not disabled.')
+    }
+    if ($null -ne $layer32 -and $layer32 -ne 1) {
+        [void]$issues.Add('The global ReShade Vulkan 32-bit layer was not disabled.')
+    }
+    if ($issues.Count -gt 0) {
+        throw "ReShade/DXVK installation validation failed:`r`n - $($issues -join "`r`n - ")"
+    }
+}
+
 function Enable-ProxyPipeline {
     Assert-TeraClosed
-    Assert-BaseFiles
+    Assert-GraphicsPayload
     Save-ProxyState
 
     $activeKind = Get-DllKind $activeD3D9
@@ -272,7 +357,10 @@ function Enable-ProxyPipeline {
 
     Set-IniValue -Path $reShadeConfig -Section 'PROXY' -Key 'EnableProxyLibrary' -Value '1'
     Set-IniValue -Path $reShadeConfig -Section 'PROXY' -Key 'ProxyLibrary' -Value '.\d3d9_dxvk.dll'
-    Set-IniValue -Path $systemSettings -Section 'SystemSettings' -Key 'FXAA' -Value 'False'
+    $primaryResolution = Get-PrimaryDisplayResolution
+    Set-IniValue -Path $reShadeConfig -Section 'DEPTH' -Key 'FilterResolutionWidth' -Value ([string]$primaryResolution.Width)
+    Set-IniValue -Path $reShadeConfig -Section 'DEPTH' -Key 'FilterResolutionHeight' -Value ([string]$primaryResolution.Height)
+    Set-IniValue -Path $systemSettings -Section 'SystemSettings' -Key 'FXAA' -Value $managedFXAA
 
     Set-LayerValue -RegistryPath $layer64Path -Name $layer64Name -Value 1
     Set-LayerValue -RegistryPath $layer32Path -Name $layer32Name -Value 1
@@ -281,7 +369,8 @@ function Enable-ProxyPipeline {
         Remove-Item -LiteralPath (Join-Path $binaryRoot 'ReShade.log') -Force
     }
 
-    Write-Host 'ReShade D3D9 -> DXVK -> Vulkan proxy chain enabled.' -ForegroundColor Green
+    Assert-ProxyPipelineInstalled
+    Write-Host "ReShade D3D9 -> DXVK -> Vulkan proxy chain enabled for $($primaryResolution.Width)x$($primaryResolution.Height)." -ForegroundColor Green
 }
 
 function Disable-ProxyPipeline {
@@ -349,6 +438,7 @@ function Show-Status {
     if ($logLength -gt 0) {
         $runtimeConfirmed = (Read-SharedText -Path $logPath).Contains("Initializing crosire's ReShade")
     }
+    $primaryResolution = Get-PrimaryDisplayResolution
     [pscustomobject]@{
         TeraRoot = $TeraRoot
         ActiveD3D9 = $activeKind
@@ -358,20 +448,47 @@ function Show-Status {
         VulkanGlobalLayer64Disabled = ($layer64 -eq 1)
         VulkanGlobalLayer32Disabled = ($layer32 -eq 1)
         TeraFXAA = $fxaa
+        ExpectedTeraFXAA = $managedFXAA
         ConfigActive = (Test-Path -LiteralPath $reShadeConfig -PathType Leaf)
         PresetInstalled = (Test-Path -LiteralPath $reShadePreset -PathType Leaf)
         ShadersInstalled = (Test-Path -LiteralPath $reShadeShaders -PathType Container)
         GenericDepthFilter = "Format=$depthFormat Resolution=${depthWidth}x${depthHeight} AspectMode=$depthAspect"
-        ProxyPipelineEnabled = ($activeKind -eq 'ReShade' -and $proxyKind -eq 'DXVK' -and $proxyEnabled -eq '1' -and $proxyLibrary -ieq '.\d3d9_dxvk.dll' -and $fxaa -ieq 'False' -and ($null -eq $layer64 -or $layer64 -eq 1) -and ($null -eq $layer32 -or $layer32 -eq 1))
+        PrimaryDisplayResolution = "$($primaryResolution.Width)x$($primaryResolution.Height)"
+        GenericDepthMatchesPrimaryDisplay = (
+            $depthWidth -eq [string]$primaryResolution.Width -and
+            $depthHeight -eq [string]$primaryResolution.Height
+        )
+        ProxyPipelineEnabled = ($activeKind -eq 'ReShade' -and $proxyKind -eq 'DXVK' -and $proxyEnabled -eq '1' -and $proxyLibrary -ieq '.\d3d9_dxvk.dll' -and $fxaa -ieq $managedFXAA -and ($null -eq $layer64 -or $layer64 -eq 1) -and ($null -eq $layer32 -or $layer32 -eq 1))
         RuntimeConfirmed = $runtimeConfirmed
         ReShadeLogBytes = $logLength
     }
 }
 
-if ($Action -ne 'Status' -and -not (Test-IsAdministrator)) { Restart-Elevated }
+if ($Action -in @('Enable', 'Disable', 'Restore') -and -not (Test-IsAdministrator)) { Restart-Elevated }
 
 try {
+    foreach ($path in @($displayResolutionScript, $engineProfileSupport, $engineProfilePath)) {
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+            throw "Required file is missing: $path"
+        }
+    }
+    . $displayResolutionScript
+    . $engineProfileSupport
+    $engineProfileEntries = @(Get-EngineProfileEntries -ProfilePath $engineProfilePath -FileMap $engineFileMap)
+    $fxaaEntry = $engineProfileEntries | Where-Object {
+        $_.File -ieq 'S1SystemSettings.ini' -and
+        $_.Section -ieq 'SystemSettings' -and
+        $_.Key -ieq 'FXAA'
+    } | Select-Object -First 1
+    if ($null -eq $fxaaEntry) {
+        throw 'The engine profile must define S1SystemSettings.ini [SystemSettings] FXAA.'
+    }
+    $managedFXAA = [string]$fxaaEntry.Value
     switch ($Action) {
+        'Validate' {
+            Assert-GraphicsPayload
+            Write-Host 'ReShade and DXVK prerequisites are ready.' -ForegroundColor Green
+        }
         'Enable' {
             Enable-ProxyPipeline
             Show-Status | Format-List
@@ -392,7 +509,9 @@ try {
 catch {
     $message = $_ | Out-String
     $errorLog = Join-Path $toolsRoot 'proxy-manager-error.log'
-    [System.IO.File]::WriteAllText($errorLog, $message, [System.Text.UTF8Encoding]::new($false))
-    Write-Error $message
-    exit 1
+    try {
+        New-Item -ItemType Directory -Path $toolsRoot -Force | Out-Null
+        [System.IO.File]::WriteAllText($errorLog, $message, [System.Text.UTF8Encoding]::new($false))
+    } catch {}
+    throw
 }

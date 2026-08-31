@@ -5,6 +5,15 @@ combines the stable UE3 engine profile, a D3D9 ReShade-to-DXVK pipeline, the
 current ReShade preset and Generic Depth selection, and sanitized TCC/Shinra
 settings.
 
+## Prerequisites
+
+Install and launch both TCC and Shinra Meter at least once before using the
+default `Apply` action or `EnableReShade`. Their Classic+ configuration folders
+must already exist under `%APPDATA%\Crazy-eSports-ClassicPlus\mods\external`.
+The installer checks these prerequisites before changing TERA engine or graphics
+files, then reapplies the bundled TCC/Shinra profiles after the ReShade/DXVK
+setup succeeds.
+
 ## Install
 
 Extract the package folder directly inside the TERA installation directory:
@@ -18,9 +27,18 @@ TERA/
 ```
 
 Close TERA, the launcher, Noctenium, TCC, and Shinra Meter. Run `Install.cmd`.
-The script requests administrator rights because it checks the system ReShade
-Vulkan-layer registry values. It finishes by locking the five managed TERA INI
-files read-only.
+The installer keeps its console open, displays progress, and writes all update
+and install output to a timestamped file under `logs`. An administrator consent
+prompt is required because it checks the system ReShade Vulkan-layer registry
+values. It finishes by locking the five managed TERA INI files read-only. Press
+any key after the final result to close the window.
+
+Before applying the package, the launcher checks the latest published
+release at <https://github.com/Shadsa/TCO/releases>. A newer release ZIP is
+downloaded and installed only after its SHA-256 and complete package manifest
+have been validated. If GitHub is unavailable or no release exists, the local
+validated package continues normally. A failed file replacement is rolled back;
+an incomplete rollback stops the installation.
 
 PowerShell equivalent:
 
@@ -28,14 +46,26 @@ PowerShell equivalent:
 .\Install-TERA-Complete.ps1 -Action Apply
 ```
 
+This direct PowerShell command does not perform the automatic update check. Use
+`Start-TCO.ps1` for the same update-and-install flow as `Install.cmd`.
+
+### Publishing updates
+
+The latest GitHub release must contain exactly one ZIP asset whose name begins
+with `TCO` or `TERA-Complete`. The ZIP must contain one package root with
+`manifest.json` and all launcher/installer files. Publish either a GitHub asset
+SHA-256 digest or a companion `<asset-name>.sha256` file. Packages without these
+integrity checks are rejected and the existing local package is retained.
+
 ## Installed configuration
 
 - ReShade 6.8 full add-on runtime loaded as `Binaries\d3d9.dll`.
 - DXVK D3D9 loaded by ReShade through `Binaries\d3d9_dxvk.dll`.
 - TERA FXAA disabled; SMAA is supplied by ReShade.
 - The exact captured `ReShade.ini`, `TERA_Natural_Clarity.ini`, and shader tree.
-- Generic Depth targets D24S8 at 3440x1440, exact-resolution matching, the
-  higher-draw-call candidate, and clear index 1.
+- Generic Depth targets D24S8 at the user's active primary-display resolution,
+  with exact-resolution matching, the higher-draw-call candidate, and clear
+  index 1.
 - Texture streaming pool 4096 MB, high view distance, shadows, ambient
   occlusion, bloom, lens flare, anisotropic filtering, and stable frame pacing.
 - Character LOD 2 and the current enabled mouse-smoothing values are preserved.
@@ -50,13 +80,36 @@ to build this release. The installer deliberately applies the graphics profile
 by section and key instead of copying those complete snapshots, so it does not
 overwrite another player's resolution, account, or server-specific values.
 
+## Engine profile configuration
+
+All managed engine settings live in `payload\engine-profile.json`, grouped as
+INI filename, section, then key/value:
+
+```json
+{
+  "S1Engine.ini": {
+    "TextureStreaming": {
+      "PoolSize": 4096,
+      "UseDynamicStreaming": true
+    }
+  }
+}
+```
+
+Adding a key updates it when present or inserts it into the named section when
+missing. New sections are also created. Values may be JSON strings, numbers, or
+booleans. Supported file categories are `S1Engine.ini`,
+`S1SystemSettings.ini`, `S1Option.ini`, `S1Input.ini`, and `BaseInput.ini`;
+other filenames are rejected to prevent writes outside the managed TERA files.
+The `Status` action validates every entry currently present in the JSON profile.
+
 ## Actions
 
 ```text
 Apply               Engine + DXVK + ReShade + TCC + Shinra
 ApplyClassicPlus    TCC and Shinra profiles only
 ExportClassicPlus   Refresh the sanitized profile payload
-EnableReShade       Reapply the saved ReShade/DXVK configuration
+EnableReShade       Reapply ReShade/DXVK, then TCC and Shinra profiles
 DisableReShade      Keep DXVK active without ReShade
 RestoreReShade      Restore the D3D9 state recorded before first use
 LockConfigs         Mark the five managed TERA INIs read-only
