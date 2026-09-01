@@ -125,6 +125,25 @@ Add `-IncludeClassicPlus` to `Apply` or `EnableReShade` to install the TCC and
 Shinra profiles after the graphics phase. Use `-SkipUpdate` only for an offline
 or diagnostic run.
 
+## Avalonia frontend
+
+A compact graphical frontend is available under `frontend\TcoInstaller`. Open
+`TCO.slnx` in Rider, or build it from the repository root:
+
+```powershell
+dotnet build TCO.slnx -c Debug
+dotnet run --project frontend\TcoInstaller\TcoInstaller.csproj
+```
+
+The frontend feeds validated options to `Install.ps1`, requests UAC only for
+file-changing actions, runs PowerShell without a console window, and streams
+phase events plus normal output into its live log panel. Its UI is
+cross-platform; the TCO installation backend remains Windows-only.
+
+`-OutputMode JsonLines` is reserved for frontend integration. It adds
+`TCO_EVENT` JSON lines without removing the normal CLI output or transcript.
+See `frontend\TcoInstaller\README.md` for development and publishing details.
+
 The Classic+ payload removes account hashes, usernames, tokens, and absolute
 user paths. On install, the Shinra export directory is rebuilt under the
 current user's Documents folder.

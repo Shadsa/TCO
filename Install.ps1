@@ -35,7 +35,11 @@ param(
     [switch]$IncludeClassicPlus,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SkipUpdate
+    [switch]$SkipUpdate,
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('Text', 'JsonLines')]
+    [string]$OutputMode = 'Text'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -106,6 +110,29 @@ $engineFileMap = [ordered]@{
     'S1Input.ini' = $s1Input
 }
 
+function Write-InstallerEvent
+{
+    param(
+        [ValidateSet('phase', 'result')][string]$Event,
+        [string]$Phase = '',
+        [ValidateSet('started', 'completed', 'skipped', 'failed')][string]$Status,
+        [string]$Message = ''
+    )
+
+    if ($OutputMode -ne 'JsonLines')
+    {
+        return
+    }
+
+    $payload = [ordered]@{
+        event = $Event
+        phase = $Phase
+        status = $Status
+        message = $Message
+    } | ConvertTo-Json -Compress
+    Write-Output "TCO_EVENT $payload"
+}
+
 function Test-IsAdministrator
 {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -120,7 +147,8 @@ function Restart-Elevated
         '-ExecutionPolicy', 'Bypass',
         '-File', ('"{0}"' -f $PSCommandPath),
         '-Action', $Action,
-        '-TeraRoot', ('"{0}"' -f $TeraRoot)
+        '-TeraRoot', ('"{0}"' -f $TeraRoot),
+        '-OutputMode', $OutputMode
     )
     if ($IncludeClassicPlus)
     {
@@ -599,18 +627,23 @@ if ($Action -eq 'Apply' -and -not $SkipUpdate)
     {
         $missingUpdateModule = "Update module is missing: $updateSupport"
         [IO.File]::AppendAllText($LogPath, $missingUpdateModule + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+        Write-InstallerEvent -Event result -Status failed -Message $missingUpdateModule
         Write-Error $missingUpdateModule -ErrorAction Continue
         exit 1
     }
     . $updateSupport
     try
     {
+        Write-InstallerEvent -Event phase -Phase update -Status started -Message 'Checking GitHub for package updates.'
         $updateResult = Invoke-TCOSelfUpdate -PackageRoot $PSScriptRoot -LogPath $LogPath
+        Write-InstallerEvent -Event phase -Phase update -Status completed -Message 'Update check completed.'
     }
     catch
     {
         $updateFailure = $_ | Out-String
         [IO.File]::AppendAllText($LogPath, $updateFailure, [Text.UTF8Encoding]::new($false))
+        Write-InstallerEvent -Event phase -Phase update -Status failed -Message $_.Exception.Message
+        Write-InstallerEvent -Event result -Status failed -Message 'The update phase failed.'
         Write-Error $updateFailure -ErrorAction Continue
         exit 1
     }
@@ -625,6 +658,7 @@ if ($Action -eq 'Apply' -and -not $SkipUpdate)
             '-Action', $Action,
             '-TeraRoot', $TeraRoot,
             '-LogPath', $LogPath,
+            '-OutputMode', $OutputMode,
             '-SkipUpdate'
         )
         if ($IncludeClassicPlus)
@@ -636,6 +670,14 @@ if ($Action -eq 'Apply' -and -not $SkipUpdate)
     }
     $SkipUpdate = $true
 }
+elseif ($Action -eq 'Apply')
+{
+    Write-InstallerEvent -Event phase -Phase update -Status skipped -Message 'Update check skipped.'
+}
+else
+{
+    Write-InstallerEvent -Event phase -Phase update -Status skipped -Message 'No update is required for this action.'
+}
 
 $transcriptStarted = $false
 Start-Transcript -Path $LogPath -Append | Out-Null
@@ -643,6 +685,7 @@ $transcriptStarted = $true
 
 try
 {
+    Write-InstallerEvent -Event phase -Phase preflight -Status started -Message 'Validating the package and target installation.'
     Assert-Files
     . $displayResolutionScript
     . $engineProfileSupport
@@ -655,14 +698,25 @@ try
                 Assert-ClassicPlusInstalled
             }
             Invoke-ReShadeAction -ReShadeAction Validate
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Preflight checks passed.'
             Set-ConfigLock -Locked $false
             try
             {
+                Write-InstallerEvent -Event phase -Phase engine -Status started -Message 'Applying the engine profile.'
                 & $stableEngineScript -TeraRoot $TeraRoot -EngineProfilePath $engineProfilePath
+                Write-InstallerEvent -Event phase -Phase engine -Status completed -Message 'Engine profile applied.'
+                Write-InstallerEvent -Event phase -Phase graphics -Status started -Message 'Installing and validating DXVK and ReShade.'
                 Invoke-ReShadeAction -ReShadeAction Enable
+                Write-InstallerEvent -Event phase -Phase graphics -Status completed -Message 'DXVK and ReShade installed.'
                 if ($IncludeClassicPlus)
                 {
+                    Write-InstallerEvent -Event phase -Phase classicplus -Status started -Message 'Applying TCC and Shinra profiles.'
                     Install-ClassicPlusProfiles
+                    Write-InstallerEvent -Event phase -Phase classicplus -Status completed -Message 'TCC and Shinra profiles applied.'
+                }
+                else
+                {
+                    Write-InstallerEvent -Event phase -Phase classicplus -Status skipped -Message 'Classic+ configuration was not requested.'
                 }
             }
             finally
@@ -677,15 +731,31 @@ try
             {
                 Write-Host 'TERA engine, DXVK, and ReShade profile applied.' -ForegroundColor Green
             }
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Verifying the installed configuration.'
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Installation verified.'
         }
         'ApplyClassicPlus' {
             Assert-ClassicPlusClosed
+            Assert-ClassicPlusInstalled
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Classic+ prerequisites found.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'Engine configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase graphics -Status skipped -Message 'Graphics configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase classicplus -Status started -Message 'Applying TCC and Shinra profiles.'
             Install-ClassicPlusProfiles
+            Write-InstallerEvent -Event phase -Phase classicplus -Status completed -Message 'TCC and Shinra profiles applied.'
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Verifying Classic+ configuration.'
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Classic+ configuration verified.'
         }
         'ExportClassicPlus' {
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Package files validated.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'Engine configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase graphics -Status skipped -Message 'Graphics configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase classicplus -Status started -Message 'Exporting Classic+ profiles.'
             Export-ClassicPlusProfiles
+            Write-InstallerEvent -Event phase -Phase classicplus -Status completed -Message 'Classic+ profiles exported.'
+            Write-InstallerEvent -Event phase -Phase verification -Status skipped -Message 'No installed configuration was changed.'
             Write-Host 'Export excludes the last-account hash, usernames, tokens, and absolute user paths.' -ForegroundColor Yellow
         }
         'EnableReShade' {
@@ -695,23 +765,38 @@ try
                 Assert-ClassicPlusInstalled
             }
             Invoke-ReShadeAction -ReShadeAction Validate
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Preflight checks passed.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'Engine configuration is not part of this action.'
             Set-ConfigLock -Locked $false
             try
             {
+                Write-InstallerEvent -Event phase -Phase graphics -Status started -Message 'Installing and validating DXVK and ReShade.'
                 Invoke-ReShadeAction -ReShadeAction Enable
+                Write-InstallerEvent -Event phase -Phase graphics -Status completed -Message 'DXVK and ReShade installed.'
                 if ($IncludeClassicPlus)
                 {
+                    Write-InstallerEvent -Event phase -Phase classicplus -Status started -Message 'Applying TCC and Shinra profiles.'
                     Install-ClassicPlusProfiles
+                    Write-InstallerEvent -Event phase -Phase classicplus -Status completed -Message 'TCC and Shinra profiles applied.'
+                }
+                else
+                {
+                    Write-InstallerEvent -Event phase -Phase classicplus -Status skipped -Message 'Classic+ configuration was not requested.'
                 }
             }
             finally
             {
                 Set-ConfigLock -Locked $true
             }
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Verifying the graphics configuration.'
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Graphics configuration verified.'
         }
         'DisableReShade' {
             Assert-Closed
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Preflight checks passed.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'Engine configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase graphics -Status started -Message 'Disabling ReShade and retaining DXVK.'
             Set-ConfigLock -Locked $false
             try
             {
@@ -721,10 +806,17 @@ try
             {
                 Set-ConfigLock -Locked $true
             }
+            Write-InstallerEvent -Event phase -Phase graphics -Status completed -Message 'ReShade disabled.'
+            Write-InstallerEvent -Event phase -Phase classicplus -Status skipped -Message 'Classic+ configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Verifying the graphics configuration.'
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Graphics configuration verified.'
         }
         'RestoreReShade' {
             Assert-Closed
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Preflight checks passed.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'Engine configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase graphics -Status started -Message 'Restoring the original D3D9 state.'
             Set-ConfigLock -Locked $false
             try
             {
@@ -734,26 +826,50 @@ try
             {
                 Set-ConfigLock -Locked $true
             }
+            Write-InstallerEvent -Event phase -Phase graphics -Status completed -Message 'Original D3D9 state restored.'
+            Write-InstallerEvent -Event phase -Phase classicplus -Status skipped -Message 'Classic+ configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Verifying the restored configuration.'
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Restored configuration verified.'
         }
         'LockConfigs' {
             Assert-Closed
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Preflight checks passed.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'No engine values are being changed.'
+            Write-InstallerEvent -Event phase -Phase graphics -Status skipped -Message 'Graphics files are not part of this action.'
+            Write-InstallerEvent -Event phase -Phase classicplus -Status skipped -Message 'Classic+ configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Locking and verifying configuration files.'
             Set-ConfigLock -Locked $true
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Configuration files locked.'
         }
         'UnlockConfigs' {
             Assert-Closed
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Preflight checks passed.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'No engine values are being changed.'
+            Write-InstallerEvent -Event phase -Phase graphics -Status skipped -Message 'Graphics files are not part of this action.'
+            Write-InstallerEvent -Event phase -Phase classicplus -Status skipped -Message 'Classic+ configuration is not part of this action.'
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Unlocking and verifying configuration files.'
             Set-ConfigLock -Locked $false
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Configuration files unlocked.'
         }
         'Status' {
+            Write-InstallerEvent -Event phase -Phase preflight -Status completed -Message 'Package files validated.'
+            Write-InstallerEvent -Event phase -Phase engine -Status skipped -Message 'Status mode does not change engine values.'
+            Write-InstallerEvent -Event phase -Phase graphics -Status skipped -Message 'Status mode does not change graphics files.'
+            Write-InstallerEvent -Event phase -Phase classicplus -Status skipped -Message 'Status mode does not change Classic+ profiles.'
+            Write-InstallerEvent -Event phase -Phase verification -Status started -Message 'Inspecting the current configuration.'
             Show-UnifiedStatus
+            Write-InstallerEvent -Event phase -Phase verification -Status completed -Message 'Status inspection completed.'
         }
     }
+    Write-InstallerEvent -Event result -Status completed -Message 'Installer action completed successfully.'
 }
 catch
 {
     $message = $_ | Out-String
+    Write-InstallerEvent -Event result -Status failed -Message $_.Exception.Message
     $errorLogPath = Join-Path $TeraRoot 'ReShadeTools\complete-manager-error.log'
     try
     {
