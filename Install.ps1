@@ -1,15 +1,41 @@
 #Requires -Version 5.1
 
+<#
+.SYNOPSIS
+Installs and manages the TERA Complete graphics package.
+
+.DESCRIPTION
+The default Apply action checks GitHub for a validated package update, applies
+the engine profile, installs DXVK and ReShade, and writes a timestamped log.
+TCC and Shinra profiles are included only when IncludeClassicPlus is specified.
+
+.EXAMPLE
+.\Install.ps1
+
+.EXAMPLE
+.\Install.ps1 -IncludeClassicPlus
+
+.EXAMPLE
+.\Install.ps1 -Action Status
+#>
+
+[CmdletBinding()]
 param(
     [Parameter(Mandatory = $false)]
     [ValidateSet('Apply', 'ApplyClassicPlus', 'ExportClassicPlus', 'EnableReShade', 'DisableReShade', 'RestoreReShade', 'LockConfigs', 'UnlockConfigs', 'Status')]
-    [string]$Action = 'Status',
+    [string]$Action = 'Apply',
 
     [Parameter(Mandatory = $false)]
     [string]$TeraRoot = '',
 
     [Parameter(Mandatory = $false)]
-    [string]$LogPath = ''
+    [string]$LogPath = '',
+
+    [Parameter(Mandatory = $false)]
+    [switch]$IncludeClassicPlus,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SkipUpdate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -39,6 +65,7 @@ $stableEngineScript = Join-Path $modulesRoot 'apply_tera_final_stable.ps1'
 $reShadeManager = Join-Path $modulesRoot 'tera_graphics_pipeline.ps1'
 $displayResolutionScript = Join-Path $modulesRoot 'display_resolution.ps1'
 $engineProfileSupport = Join-Path $modulesRoot 'engine_profile.ps1'
+$updateSupport = Join-Path $modulesRoot 'update_tco.ps1'
 $portableEngineProfile = Join-Path $PSScriptRoot 'payload\engine-profile.json'
 $engineProfilePath = if (Test-Path -LiteralPath $portableEngineProfile -PathType Leaf)
 {
@@ -95,6 +122,14 @@ function Restart-Elevated
         '-Action', $Action,
         '-TeraRoot', ('"{0}"' -f $TeraRoot)
     )
+    if ($IncludeClassicPlus)
+    {
+        $argumentParts += '-IncludeClassicPlus'
+    }
+    if ($SkipUpdate)
+    {
+        $argumentParts += '-SkipUpdate'
+    }
     if (-not [string]::IsNullOrWhiteSpace($LogPath))
     {
         $argumentParts += @('-LogPath', ('"{0}"' -f $LogPath))
@@ -106,13 +141,19 @@ function Restart-Elevated
 
 function Assert-Closed
 {
+    param([switch]$ClassicPlus)
+    $blockedNames = @('TERA', 'noctenium', 'TERA Europe Classic+ Launcher')
+    if ($ClassicPlus)
+    {
+        $blockedNames += @('TCC', 'ShinraMeter')
+    }
     $running = Get-Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.ProcessName -in @('TERA', 'noctenium', 'TERA Europe Classic+ Launcher', 'TCC', 'ShinraMeter')
+        $_.ProcessName -in $blockedNames
     }
     if ($running)
     {
         $names = ($running.ProcessName | Sort-Object -Unique) -join ', '
-        throw "Close TERA, Noctenium, TCC, Shinra Meter, and the launcher first. Running: $names"
+        throw "Close the affected TERA/Classic+ processes first. Running: $names"
     }
 }
 
@@ -162,7 +203,7 @@ function Assert-ClassicPlusInstalled
 function Assert-Files
 {
     foreach ($path in @($stableEngineScript, $reShadeManager, $displayResolutionScript,
-            $engineProfileSupport, $engineProfilePath) + $configFiles)
+            $engineProfileSupport, $updateSupport, $engineProfilePath) + $configFiles)
     {
         if (-not (Test-Path -LiteralPath $path))
         {
@@ -532,19 +573,73 @@ function Invoke-ReShadeAction
     & $reShadeManager -Action $ReShadeAction -TeraRoot $TeraRoot
 }
 
+if ([string]::IsNullOrWhiteSpace($LogPath))
+{
+    $LogPath = Join-Path $PSScriptRoot ("logs\install-{0}.log" -f (Get-Date).ToString('yyyyMMdd-HHmmss'))
+}
+$LogPath = [IO.Path]::GetFullPath($LogPath)
+
 if ($Action -ne 'Status' -and -not (Test-IsAdministrator))
 {
     Restart-Elevated
 }
 
-$transcriptStarted = $false
-if (-not [string]::IsNullOrWhiteSpace($LogPath))
+New-Item -ItemType Directory -Path (Split-Path -Parent $LogPath) -Force | Out-Null
+
+Write-Host 'TERA Complete installer' -ForegroundColor Cyan
+Write-Host "Action: $Action"
+Write-Host "Log: $LogPath"
+$bootstrapLine = '{0} [INSTALLER] Action={1}; TeraRoot={2}; IncludeClassicPlus={3}{4}' -f `
+    (Get-Date).ToString('o'), $Action, $TeraRoot, [bool]$IncludeClassicPlus, [Environment]::NewLine
+[IO.File]::AppendAllText($LogPath, $bootstrapLine, [Text.UTF8Encoding]::new($false))
+
+if ($Action -eq 'Apply' -and -not $SkipUpdate)
 {
-    $LogPath = [IO.Path]::GetFullPath($LogPath)
-    New-Item -ItemType Directory -Path (Split-Path -Parent $LogPath) -Force | Out-Null
-    Start-Transcript -Path $LogPath -Append | Out-Null
-    $transcriptStarted = $true
+    if (-not (Test-Path -LiteralPath $updateSupport -PathType Leaf))
+    {
+        $missingUpdateModule = "Update module is missing: $updateSupport"
+        [IO.File]::AppendAllText($LogPath, $missingUpdateModule + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+        Write-Error $missingUpdateModule -ErrorAction Continue
+        exit 1
+    }
+    . $updateSupport
+    try
+    {
+        $updateResult = Invoke-TCOSelfUpdate -PackageRoot $PSScriptRoot -LogPath $LogPath
+    }
+    catch
+    {
+        $updateFailure = $_ | Out-String
+        [IO.File]::AppendAllText($LogPath, $updateFailure, [Text.UTF8Encoding]::new($false))
+        Write-Error $updateFailure -ErrorAction Continue
+        exit 1
+    }
+
+    if ($updateResult.Updated)
+    {
+        Write-Host "Restarting with TCO release $($updateResult.Tag)..." -ForegroundColor Cyan
+        $restartArguments = @(
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', $PSCommandPath,
+            '-Action', $Action,
+            '-TeraRoot', $TeraRoot,
+            '-LogPath', $LogPath,
+            '-SkipUpdate'
+        )
+        if ($IncludeClassicPlus)
+        {
+            $restartArguments += '-IncludeClassicPlus'
+        }
+        & powershell.exe @restartArguments
+        exit $LASTEXITCODE
+    }
+    $SkipUpdate = $true
 }
+
+$transcriptStarted = $false
+Start-Transcript -Path $LogPath -Append | Out-Null
+$transcriptStarted = $true
 
 try
 {
@@ -554,21 +649,34 @@ try
     switch ($Action)
     {
         'Apply' {
-            Assert-Closed
-            Assert-ClassicPlusInstalled
+            Assert-Closed -ClassicPlus:$IncludeClassicPlus
+            if ($IncludeClassicPlus)
+            {
+                Assert-ClassicPlusInstalled
+            }
             Invoke-ReShadeAction -ReShadeAction Validate
             Set-ConfigLock -Locked $false
             try
             {
                 & $stableEngineScript -TeraRoot $TeraRoot -EngineProfilePath $engineProfilePath
                 Invoke-ReShadeAction -ReShadeAction Enable
-                Install-ClassicPlusProfiles
+                if ($IncludeClassicPlus)
+                {
+                    Install-ClassicPlusProfiles
+                }
             }
             finally
             {
                 Set-ConfigLock -Locked $true
             }
-            Write-Host 'Complete TERA engine, DXVK, ReShade, TCC, and Shinra profile applied.' -ForegroundColor Green
+            if ($IncludeClassicPlus)
+            {
+                Write-Host 'TERA engine, DXVK, ReShade, TCC, and Shinra profiles applied.' -ForegroundColor Green
+            }
+            else
+            {
+                Write-Host 'TERA engine, DXVK, and ReShade profile applied.' -ForegroundColor Green
+            }
             Show-UnifiedStatus
         }
         'ApplyClassicPlus' {
@@ -581,14 +689,20 @@ try
             Write-Host 'Export excludes the last-account hash, usernames, tokens, and absolute user paths.' -ForegroundColor Yellow
         }
         'EnableReShade' {
-            Assert-Closed
-            Assert-ClassicPlusInstalled
+            Assert-Closed -ClassicPlus:$IncludeClassicPlus
+            if ($IncludeClassicPlus)
+            {
+                Assert-ClassicPlusInstalled
+            }
             Invoke-ReShadeAction -ReShadeAction Validate
             Set-ConfigLock -Locked $false
             try
             {
                 Invoke-ReShadeAction -ReShadeAction Enable
-                Install-ClassicPlusProfiles
+                if ($IncludeClassicPlus)
+                {
+                    Install-ClassicPlusProfiles
+                }
             }
             finally
             {
@@ -640,11 +754,11 @@ try
 catch
 {
     $message = $_ | Out-String
-    $logPath = Join-Path $TeraRoot 'ReShadeTools\complete-manager-error.log'
+    $errorLogPath = Join-Path $TeraRoot 'ReShadeTools\complete-manager-error.log'
     try
     {
-        New-Item -ItemType Directory -Path (Split-Path -Parent $logPath) -Force | Out-Null
-        [System.IO.File]::WriteAllText($logPath, $message,[System.Text.UTF8Encoding]::new($false))
+        New-Item -ItemType Directory -Path (Split-Path -Parent $errorLogPath) -Force | Out-Null
+        [System.IO.File]::WriteAllText($errorLogPath, $message,[System.Text.UTF8Encoding]::new($false))
     }
     catch
     {

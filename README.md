@@ -7,12 +7,12 @@ settings.
 
 ## Prerequisites
 
-Install and launch both TCC and Shinra Meter at least once before using the
-default `Apply` action or `EnableReShade`. Their Classic+ configuration folders
-must already exist under `%APPDATA%\Crazy-eSports-ClassicPlus\mods\external`.
-The installer checks these prerequisites before changing TERA engine or graphics
-files, then reapplies the bundled TCC/Shinra profiles after the ReShade/DXVK
-setup succeeds.
+No TCC or Shinra installation is required for the default graphics setup. To
+install their bundled profiles too, install and launch both tools at least once,
+then use `-IncludeClassicPlus`. Their configuration folders must already exist
+under `%APPDATA%\Crazy-eSports-ClassicPlus\mods\external`. The installer checks
+them before changing TERA files and applies their profiles only after the
+ReShade/DXVK setup succeeds.
 
 ## Install
 
@@ -23,37 +23,41 @@ TERA/
   Binaries/
   S1Game/
   TERA-Complete-Graphics-Package-2026-08-30-final/
-    Install.cmd
+    Install.ps1
 ```
 
-Close TERA, the launcher, Noctenium, TCC, and Shinra Meter. Run `Install.cmd`.
-The installer keeps its console open, displays progress, and writes all update
-and install output to a timestamped file under `logs`. An administrator consent
-prompt is required because it checks the system ReShade Vulkan-layer registry
-values. It finishes by locking the five managed TERA INI files read-only. Press
-any key after the final result to close the window.
+Open PowerShell in the package folder, close TERA, its launcher, and Noctenium,
+then run:
 
-Before applying the package, the launcher checks the latest published
-release at <https://github.com/Shadsa/TCO/releases>. A newer release ZIP is
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1
+```
+
+This single CLI entry point displays progress and writes all update and install
+output to a timestamped file under `logs`. An administrator consent prompt is
+required because it checks the system ReShade Vulkan-layer registry values. It
+finishes by locking the five managed TERA INI files read-only.
+
+To include the optional Classic+ profiles, also close TCC and Shinra Meter and
+run:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -IncludeClassicPlus
+```
+
+Before the default `Apply` action, `Install.ps1` calls
+`modules\update_tco.ps1` to check the latest published release at
+<https://github.com/Shadsa/TCO/releases>. A newer release ZIP is
 downloaded and installed only after its SHA-256 and complete package manifest
 have been validated. If GitHub is unavailable or no release exists, the local
 validated package continues normally. A failed file replacement is rolled back;
 an incomplete rollback stops the installation.
 
-PowerShell equivalent:
-
-```powershell
-.\Install-TERA-Complete.ps1 -Action Apply
-```
-
-This direct PowerShell command does not perform the automatic update check. Use
-`Start-TCO.ps1` for the same update-and-install flow as `Install.cmd`.
-
 ### Publishing updates
 
 The latest GitHub release must contain exactly one ZIP asset whose name begins
 with `TCO` or `TERA-Complete`. The ZIP must contain one package root with
-`manifest.json` and all launcher/installer files. Publish either a GitHub asset
+`manifest.json`, `Install.ps1`, and the `modules` folder. Publish a GitHub asset
 SHA-256 digest or a companion `<asset-name>.sha256` file. Packages without these
 integrity checks are rejected and the existing local package is retained.
 
@@ -106,16 +110,20 @@ The `Status` action validates every entry currently present in the JSON profile.
 ## Actions
 
 ```text
-Apply               Engine + DXVK + ReShade + TCC + Shinra
+Apply               Engine + DXVK + ReShade; checks GitHub first
 ApplyClassicPlus    TCC and Shinra profiles only
 ExportClassicPlus   Refresh the sanitized profile payload
-EnableReShade       Reapply ReShade/DXVK, then TCC and Shinra profiles
+EnableReShade       Reapply ReShade/DXVK
 DisableReShade      Keep DXVK active without ReShade
 RestoreReShade      Restore the D3D9 state recorded before first use
 LockConfigs         Mark the five managed TERA INIs read-only
 UnlockConfigs       Remove the read-only attribute
 Status              Show engine, D3D9 pipeline, depth, and profile status
 ```
+
+Add `-IncludeClassicPlus` to `Apply` or `EnableReShade` to install the TCC and
+Shinra profiles after the graphics phase. Use `-SkipUpdate` only for an offline
+or diagnostic run.
 
 The Classic+ payload removes account hashes, usernames, tokens, and absolute
 user paths. On install, the Shinra export directory is rebuilt under the

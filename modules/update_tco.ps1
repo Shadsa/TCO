@@ -1,25 +1,5 @@
 #Requires -Version 5.1
 
-param(
-    [Parameter(Mandatory = $false)]
-    [string]$PackageRoot = $PSScriptRoot,
-
-    [Parameter(Mandatory = $false)]
-    [string]$LogPath = ''
-)
-
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version 2.0
-
-$PackageRoot = [IO.Path]::GetFullPath($PackageRoot)
-if ([string]::IsNullOrWhiteSpace($LogPath)) {
-    $LogPath = Join-Path $PackageRoot 'logs\update.log'
-}
-$LogPath = [IO.Path]::GetFullPath($LogPath)
-New-Item -ItemType Directory -Path (Split-Path -Parent $LogPath) -Force | Out-Null
-$apiUrl = 'https://api.github.com/repos/Shadsa/TCO/releases/latest'
-$statePath = Join-Path $PackageRoot 'logs\update-state.json'
-
 function Write-UpdateLog {
     param([string]$Message, [ValidateSet('INFO', 'WARN', 'ERROR')][string]$Level = 'INFO')
     $line = '{0} [UPDATE] [{1}] {2}{3}' -f (Get-Date).ToString('o'), $Level, $Message, [Environment]::NewLine
@@ -67,8 +47,7 @@ function Assert-PackageManifest {
             throw "Manifest validation failed for $relative"
         }
     }
-    foreach ($required in @('Install.cmd', 'Start-TCO.ps1',
-            'Update-TCO.ps1', 'Install-TERA-Complete.ps1')) {
+    foreach ($required in @('Install.ps1', 'modules\update_tco.ps1')) {
         if (-not $seen.ContainsKey($required)) { throw "Release package does not manage required launcher file: $required" }
     }
 }
@@ -203,84 +182,94 @@ function Install-ReleasePackage {
 }
 
 function Invoke-TCOSelfUpdate {
+    param(
+        [Parameter(Mandatory = $true)][string]$PackageRoot,
+        [Parameter(Mandatory = $true)][string]$LogPath
+    )
+
+    $PackageRoot = [IO.Path]::GetFullPath($PackageRoot)
+    $LogPath = [IO.Path]::GetFullPath($LogPath)
+    New-Item -ItemType Directory -Path (Split-Path -Parent $LogPath) -Force | Out-Null
+    $apiUrl = 'https://api.github.com/repos/Shadsa/TCO/releases/latest'
+    $statePath = Join-Path $PackageRoot 'logs\update-state.json'
+
     try {
-        $localManifest = Get-PackageManifest -Root $PackageRoot
-        Assert-PackageManifest -Root $PackageRoot -Manifest $localManifest
+        try {
+            $localManifest = Get-PackageManifest -Root $PackageRoot
+            Assert-PackageManifest -Root $PackageRoot -Manifest $localManifest
+        }
+        catch {
+            throw "FATAL: local package validation failed. $($_.Exception.Message)"
+        }
+        Write-UpdateLog "Checking $apiUrl"
+        $release = Get-LatestRelease
+        if ($null -eq $release) {
+            return [pscustomobject]@{ Updated = $false; Tag = $null }
+        }
+        $tag = [string]$release.tag_name
+        if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Latest GitHub release has no tag.' }
+
+        if (Test-Path -LiteralPath $statePath -PathType Leaf) {
+            try {
+                $state = [IO.File]::ReadAllText($statePath) | ConvertFrom-Json
+                if ([string]$state.Tag -eq $tag) {
+                    Write-UpdateLog "Release $tag is already installed."
+                    return [pscustomobject]@{ Updated = $false; Tag = $tag }
+                }
+            } catch { Write-UpdateLog "Ignoring invalid update state: $($_.Exception.Message)" 'WARN' }
+        }
+
+        $localVersion = ([string]$localManifest.Version).TrimStart('v', 'V')
+        if ($localVersion -eq $tag.TrimStart('v', 'V')) {
+            Write-UpdateLog "Local package already matches release $tag."
+            [IO.File]::WriteAllText($statePath, ([ordered]@{ Tag = $tag; InstalledAt = (Get-Date).ToString('o') } | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+            return [pscustomobject]@{ Updated = $false; Tag = $tag }
+        }
+        $asset = Select-ReleaseZipAsset -Release $release
+        $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ('tco-update-' + [guid]::NewGuid().ToString('N'))
+        $extractRoot = Join-Path $temporaryRoot 'extract'
+        New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+        try {
+            $expectedHash = Get-AssetSHA256 -Release $release -Asset $asset -TemporaryRoot $temporaryRoot
+            $zipPath = Join-Path $temporaryRoot $asset.name
+            if (-not (Test-PathInsideRoot -Root $temporaryRoot -Path $zipPath)) {
+                throw "Unsafe release asset name: $($asset.name)"
+            }
+            Write-UpdateLog "Downloading release $tag asset $($asset.name)."
+            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath -UseBasicParsing
+            $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash
+            if ($actualHash -ne $expectedHash) { throw 'Downloaded release asset SHA-256 does not match GitHub metadata.' }
+            Assert-ZipPathsSafe -ZipPath $zipPath -ExtractRoot $extractRoot
+            Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
+            $candidates = @(Get-ChildItem -LiteralPath $extractRoot -Filter manifest.json -File -Recurse | Where-Object {
+                Test-Path -LiteralPath (Join-Path $_.DirectoryName 'Install.ps1') -PathType Leaf
+            })
+            if ($candidates.Count -ne 1) { throw "Release ZIP must contain exactly one TCO package root; found $($candidates.Count)." }
+            $sourceRoot = $candidates[0].DirectoryName
+            $remoteManifest = Get-PackageManifest -Root $sourceRoot
+            Assert-PackageManifest -Root $sourceRoot -Manifest $remoteManifest
+            Install-ReleasePackage -SourceRoot $sourceRoot -Manifest $remoteManifest
+            [IO.File]::WriteAllText($statePath, ([ordered]@{
+                Tag = $tag
+                Asset = [string]$asset.name
+                AssetSHA256 = $actualHash
+                InstalledAt = (Get-Date).ToString('o')
+            } | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
+            Write-UpdateLog "Updated local package successfully to release $tag."
+            return [pscustomobject]@{ Updated = $true; Tag = $tag }
+        }
+        finally {
+            $systemTemporaryRoot = [IO.Path]::GetTempPath()
+            if ((Test-PathInsideRoot -Root $systemTemporaryRoot -Path $temporaryRoot) -and
+                (Test-Path -LiteralPath $temporaryRoot)) {
+                Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
+            }
+        }
     }
     catch {
-        throw "FATAL: local package validation failed. $($_.Exception.Message)"
+        Write-UpdateLog "Update was not applied: $($_ | Out-String)" 'ERROR'
+        if ($_.Exception.Message -like 'FATAL:*') { throw }
+        Write-UpdateLog 'The validated local package will be used.' 'WARN'
+        return [pscustomobject]@{ Updated = $false; Tag = $null }
     }
-
-    Write-UpdateLog "Checking $apiUrl"
-    $release = Get-LatestRelease
-    if ($null -eq $release) { return }
-    $tag = [string]$release.tag_name
-    if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Latest GitHub release has no tag.' }
-
-    if (Test-Path -LiteralPath $statePath -PathType Leaf) {
-        try {
-            $state = [IO.File]::ReadAllText($statePath) | ConvertFrom-Json
-            if ([string]$state.Tag -eq $tag) {
-                Write-UpdateLog "Release $tag is already installed."
-                return
-            }
-        } catch { Write-UpdateLog "Ignoring invalid update state: $($_.Exception.Message)" 'WARN' }
-    }
-
-    $localVersion = ([string]$localManifest.Version).TrimStart('v', 'V')
-    if ($localVersion -eq $tag.TrimStart('v', 'V')) {
-        Write-UpdateLog "Local package already matches release $tag."
-        [IO.File]::WriteAllText($statePath, ([ordered]@{ Tag = $tag; InstalledAt = (Get-Date).ToString('o') } | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
-        return
-    }
-    $asset = Select-ReleaseZipAsset -Release $release
-    $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ('tco-update-' + [guid]::NewGuid().ToString('N'))
-    $extractRoot = Join-Path $temporaryRoot 'extract'
-    New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
-    try {
-        $expectedHash = Get-AssetSHA256 -Release $release -Asset $asset -TemporaryRoot $temporaryRoot
-        $zipPath = Join-Path $temporaryRoot $asset.name
-        if (-not (Test-PathInsideRoot -Root $temporaryRoot -Path $zipPath)) {
-            throw "Unsafe release asset name: $($asset.name)"
-        }
-        Write-UpdateLog "Downloading release $tag asset $($asset.name)."
-        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath -UseBasicParsing
-        $actualHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash
-        if ($actualHash -ne $expectedHash) { throw 'Downloaded release asset SHA-256 does not match GitHub metadata.' }
-        Assert-ZipPathsSafe -ZipPath $zipPath -ExtractRoot $extractRoot
-        Expand-Archive -LiteralPath $zipPath -DestinationPath $extractRoot -Force
-        $candidates = @(Get-ChildItem -LiteralPath $extractRoot -Filter manifest.json -File -Recurse | Where-Object {
-            Test-Path -LiteralPath (Join-Path $_.DirectoryName 'Install-TERA-Complete.ps1') -PathType Leaf
-        })
-        if ($candidates.Count -ne 1) { throw "Release ZIP must contain exactly one TCO package root; found $($candidates.Count)." }
-        $sourceRoot = $candidates[0].DirectoryName
-        $remoteManifest = Get-PackageManifest -Root $sourceRoot
-        Assert-PackageManifest -Root $sourceRoot -Manifest $remoteManifest
-        Install-ReleasePackage -SourceRoot $sourceRoot -Manifest $remoteManifest
-        [IO.File]::WriteAllText($statePath, ([ordered]@{
-            Tag = $tag
-            Asset = [string]$asset.name
-            AssetSHA256 = $actualHash
-            InstalledAt = (Get-Date).ToString('o')
-        } | ConvertTo-Json), [Text.UTF8Encoding]::new($false))
-        Write-UpdateLog "Updated local package successfully to release $tag."
-    }
-    finally {
-        $systemTemporaryRoot = [IO.Path]::GetTempPath()
-        if ((Test-PathInsideRoot -Root $systemTemporaryRoot -Path $temporaryRoot) -and
-            (Test-Path -LiteralPath $temporaryRoot)) {
-            Remove-Item -LiteralPath $temporaryRoot -Recurse -Force
-        }
-    }
-}
-
-try {
-    Invoke-TCOSelfUpdate
-    exit 0
-}
-catch {
-    Write-UpdateLog "Update was not applied: $($_ | Out-String)" 'ERROR'
-    if ($_.Exception.Message -like 'FATAL:*') { exit 1 }
-    Write-UpdateLog 'The validated local package will be used.' 'WARN'
-    exit 0
 }

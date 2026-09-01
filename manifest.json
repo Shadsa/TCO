@@ -49,17 +49,12 @@
     "ShinraAudioMuted": true,
     "ShinraPasteKey": "Ctrl+Home"
   },
-  "FileCount": 79,
+  "FileCount": 77,
   "Files": [
     {
-      "Path": "Install-TERA-Complete.ps1",
-      "Bytes": 21756,
-      "SHA256": "91CD0A41CC1D69819EF15E17B6E3887CC6B148A1ED73A96B06383CBDFB10A62D"
-    },
-    {
-      "Path": "Install.cmd",
-      "Bytes": 374,
-      "SHA256": "C1CC5F2A2CAF5A79337B0473E03132D31F3524590E4CF8EB25E21AB027A636A8"
+      "Path": "Install.ps1",
+      "Bytes": 25132,
+      "SHA256": "7FCE08F5071EEEBA735A754C02A019148C0E86824B9EEC053CE4E9637273DE20"
     },
     {
       "Path": "LICENSE",
@@ -80,6 +75,11 @@
       "Path": "modules/engine_profile.ps1",
       "Bytes": 3508,
       "SHA256": "83D6B30FCBB1BCB5333AF24426A4A00D6D63AD3640FCDD338492C34B52463220"
+    },
+    {
+      "Path": "modules/update_tco.ps1",
+      "Bytes": 14153,
+      "SHA256": "BFD7EC17678FF150DAE2E86F01C030325107ED4C55F9C0DE3593BF125535F100"
     },
     {
       "Path": "modules/tera_graphics_pipeline.ps1",
@@ -428,23 +428,13 @@
     },
     {
       "Path": "README.md",
-      "Bytes": 5672,
-      "SHA256": "376EAABC0EFFB9EF4F472694FD9A276ED6DE8B67452AD8797BE14CD8B752183C"
+      "Bytes": 5869,
+      "SHA256": "1474DBE8D0C10CDE76AAB483278068DF87AB249640FAAE09F0F05015C01D88A8"
     },
     {
       "Path": "SOURCES.md",
       "Bytes": 618,
       "SHA256": "0E41CEE876557350DA3832D7BAB10886E84CA5232518E0615C38A549124628E5"
-    },
-    {
-      "Path": "Start-TCO.ps1",
-      "Bytes": 1836,
-      "SHA256": "E725A0630668C337CA786B86722E2511184148D7C480264CA1F3C59F36E2E1D6"
-    },
-    {
-      "Path": "Update-TCO.ps1",
-      "Bytes": 13833,
-      "SHA256": "4626E09D4D5346E5CCAFCAE1E15530FA572917DECD07097257AC204D56025F02"
     }
   ]
 }
