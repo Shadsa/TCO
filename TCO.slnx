@@ -2,4 +2,10 @@
   <Folder Name="/frontend/">
     <Project Path="frontend/TcoInstaller/TcoInstaller.csproj" />
   </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/TcoInstaller.Core/TcoInstaller.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TcoInstaller.Tests/TcoInstaller.Tests.csproj" />
+  </Folder>
 </Solution>

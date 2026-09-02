@@ -1,119 +1,211 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TcoInstaller.ViewModels"
+        xmlns:models="using:TcoInstaller.Models"
+        xmlns:mv="using:MarkView.Avalonia"
         x:Class="TcoInstaller.MainWindow"
-        Title="TCO Installer"
-        Width="760"
-        Height="760"
-        MinWidth="680"
-        MinHeight="680"
+        x:DataType="vm:MainWindowViewModel"
+        Title="TCO - TERA Classic+ Optimizer"
+        Width="920"
+        Height="860"
+        MinWidth="760"
+        MinHeight="720"
         Background="#0B0E14"
         WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="Auto,*">
-    <Border Padding="28,24" Background="#111522" BorderBrush="#252C3B" BorderThickness="0,0,0,1">
+    <Border Padding="24,18" Background="#111522" BorderBrush="#252C3B" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="*,Auto">
-        <StackPanel Spacing="5">
-          <TextBlock Text="TCO" FontSize="13" FontWeight="Bold" Foreground="#9B87FF" />
-          <TextBlock Text="TERA Complete installer" FontSize="26" FontWeight="SemiBold" />
-          <TextBlock Text="Engine profile · DXVK · ReShade" Foreground="#929BAE" />
+        <StackPanel Spacing="2">
+          <TextBlock Text="TCO" FontSize="28" FontWeight="Bold" Foreground="#FFFFFF" />
+          <TextBlock Text="TERA Classic+ Optimizer" FontSize="13" FontWeight="SemiBold" Foreground="#9B87FF" />
+          <TextBlock Text="Engine configuration · DXVK · ReShade · Classic+" Margin="0,4,0,0"
+                     Foreground="#929BAE" FontSize="12" />
         </StackPanel>
-        <Border Grid.Column="1" Padding="12,7" CornerRadius="20" Background="#1B2130" VerticalAlignment="Center">
-          <TextBlock Text="{Binding StatusText}" Foreground="#C8D0E0" FontSize="12" />
-        </Border>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Border Width="7" Height="7" CornerRadius="4" Background="#6DD6A0" />
+          <TextBlock Text="{Binding StatusText}" Foreground="#C8D0E0" FontSize="12"
+                     VerticalAlignment="Center" />
+        </StackPanel>
       </Grid>
     </Border>
 
-    <ScrollViewer Grid.Row="1">
-      <StackPanel Margin="28" Spacing="16">
-        <Border Classes="card">
-          <StackPanel Spacing="14">
-            <TextBlock Text="Installation" FontSize="17" FontWeight="SemiBold" />
+    <TabControl Grid.Row="1" Classes="main-tabs" Padding="0" Background="Transparent">
+      <TabControl.Styles>
+        <Style Selector="TabControl.main-tabs /template/ TabStrip">
+          <Setter Property="Background" Value="#111522" />
+          <Setter Property="Padding" Value="20,0" />
+          <Setter Property="MinHeight" Value="48" />
+        </Style>
+        <Style Selector="TabControl.main-tabs TabItem">
+          <Setter Property="MinWidth" Value="132" />
+          <Setter Property="MinHeight" Value="48" />
+          <Setter Property="Padding" Value="22,12" />
+          <Setter Property="FontWeight" Value="SemiBold" />
+          <Setter Property="Foreground" Value="#929BAE" />
+          <Setter Property="HorizontalContentAlignment" Value="Center" />
+          <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TabControl.main-tabs TabItem:pointerover">
+          <Setter Property="Foreground" Value="#D9DEEA" />
+          <Setter Property="Background" Value="#171C29" />
+        </Style>
+        <Style Selector="TabControl.main-tabs TabItem:selected">
+          <Setter Property="Foreground" Value="#FFFFFF" />
+          <Setter Property="Background" Value="#1B2130" />
+        </Style>
+      </TabControl.Styles>
+      <TabItem Header="Installer">
+        <ScrollViewer>
+          <StackPanel Margin="20,16,20,20" Spacing="16">
+            <Border Classes="card">
+              <StackPanel Spacing="16">
+                <TextBlock Text="Installation" FontSize="17" FontWeight="SemiBold" />
 
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
-              <TextBlock Text="TERA directory" Foreground="#AAB3C4" />
-              <TextBox Grid.Row="1"
-                       Text="{Binding TeraRoot, Mode=TwoWay}"
-                       PlaceholderText="Select the folder containing Binaries and S1Game" />
-              <Button Grid.Row="1" Grid.Column="1" Content="Browse…" Click="Browse_OnClick" Padding="18,0" />
-            </Grid>
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="6">
+                  <TextBlock Text="TERA directory" Foreground="#AAB3C4" />
+                  <TextBox Grid.Row="1"
+                           Text="{Binding TeraRoot, Mode=TwoWay}"
+                           IsEnabled="{Binding CanEdit}"
+                           PlaceholderText="Select the folder containing Binaries and S1Game" />
+                  <Button Grid.Row="1" Grid.Column="1" Content="Browse…" Click="Browse_OnClick"
+                          IsEnabled="{Binding CanEdit}" />
+                </Grid>
 
-            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-              <StackPanel Spacing="6">
-                <TextBlock Text="Action" Foreground="#AAB3C4" />
-                <ComboBox ItemsSource="{Binding Actions}" SelectedItem="{Binding SelectedAction, Mode=TwoWay}" />
-              </StackPanel>
-              <StackPanel Grid.Column="1" Spacing="9" Margin="0,3,0,0">
-                <CheckBox Content="Check GitHub for updates"
-                          IsChecked="{Binding CheckForUpdates, Mode=TwoWay}"
-                          IsEnabled="{Binding CanCheckForUpdates}" />
-                <CheckBox Content="Configure TCC and Shinra"
-                          IsChecked="{Binding IncludeClassicPlus, Mode=TwoWay}"
-                          IsEnabled="{Binding CanIncludeClassicPlus}" />
-              </StackPanel>
-            </Grid>
-
-            <Button Classes="primary"
-                    Content="{Binding RunButtonText}"
-                    IsEnabled="{Binding CanRun}"
-                    Click="Run_OnClick"
-                    HorizontalAlignment="Stretch" />
-
-            <TextBlock Text="The installer requests administrator access only when the selected action changes files."
-                       Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
-          </StackPanel>
-        </Border>
-
-        <Border Classes="card">
-          <StackPanel Spacing="14">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Progress" FontSize="17" FontWeight="SemiBold" />
-              <ProgressBar Grid.Column="1" Width="120" Height="4" IsIndeterminate="{Binding IsRunning}" />
-            </Grid>
-
-            <ItemsControl ItemsSource="{Binding Phases}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <UniformGrid Rows="1" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                  <StackPanel HorizontalAlignment="Center" Spacing="6">
-                    <Border Width="25" Height="25" CornerRadius="13" Background="{Binding StatusBrush}">
-                      <TextBlock Text="{Binding StatusGlyph}"
-                                 HorizontalAlignment="Center"
-                                 VerticalAlignment="Center"
-                                 FontWeight="Bold" />
-                    </Border>
-                    <TextBlock Text="{Binding Label}" Foreground="#AAB3C4" FontSize="11" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Engine configuration" Foreground="#AAB3C4" />
+                    <ComboBox ItemsSource="{Binding EngineConfigurations}"
+                              SelectedItem="{Binding SelectedEngineConfiguration, Mode=TwoWay}"
+                              IsEnabled="{Binding CanEdit}" />
+                    <TextBlock Text="{Binding SelectedEngineConfiguration.Description}"
+                               Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
                   </StackPanel>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
+                  <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Center">
+                    <CheckBox Content="PC Only"
+                              IsChecked="{Binding PcOnly, Mode=TwoWay}"
+                              IsEnabled="{Binding CanEdit}"
+                              ToolTip.Tip="Disable joystick input when engine settings are applied." />
+                    <CheckBox Content="Patch TCC and Shinra during Apply"
+                              IsChecked="{Binding IncludeClassicPlus, Mode=TwoWay}"
+                              IsEnabled="{Binding CanEdit}" />
+                  </StackPanel>
+                </Grid>
 
-        <Border Classes="card">
-          <Grid RowDefinitions="Auto,*" RowSpacing="12">
-            <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="Live output" FontSize="17" FontWeight="SemiBold" />
-              <Button Grid.Column="1" Content="Open log" IsEnabled="{Binding HasLog}" Click="OpenLog_OnClick" />
-            </Grid>
-            <TextBox x:Name="LogTextBox"
-                     Grid.Row="1"
-                     Height="190"
-                     Text="{Binding LogText}"
-                     IsReadOnly="True"
-                     AcceptsReturn="True"
-                     TextWrapping="NoWrap"
-                     FontFamily="Cascadia Mono, Consolas"
-                     FontSize="11"
-                     Background="#090C12"
-                     BorderBrush="#202738"
-                     ScrollViewer.VerticalScrollBarVisibility="Auto"
-                     ScrollViewer.HorizontalScrollBarVisibility="Auto" />
-          </Grid>
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                  <Button Classes="primary action" Content="Apply complete pipeline" Tag="Apply"
+                          IsEnabled="{Binding CanRun}" Click="Action_OnClick" HorizontalAlignment="Stretch" />
+                  <Button Grid.Column="1" Classes="action" Content="Scan current configuration" Tag="Status"
+                          IsEnabled="{Binding CanRun}" Click="Action_OnClick" />
+                  <Button Grid.Column="2" Classes="action" Content="Cancel" IsVisible="{Binding IsRunning}"
+                          Click="Cancel_OnClick" />
+                </Grid>
+
+                <Separator />
+
+                <Grid ColumnDefinitions="160,*,*" RowDefinitions="42,42,42" ColumnSpacing="10" RowSpacing="10">
+                  <TextBlock Text="Engine settings" VerticalAlignment="Center" Foreground="#C8D0E0" />
+                  <Button Grid.Column="1" Content="Apply" Tag="ApplyEngine" IsEnabled="{Binding CanRun}" Click="Action_OnClick" />
+                  <Button Grid.Column="2" Content="Restore" Tag="RestoreEngine" IsEnabled="{Binding CanRun}" Click="Action_OnClick" />
+
+                  <TextBlock Grid.Row="1" Text="ReShade" VerticalAlignment="Center" Foreground="#C8D0E0" />
+                  <Button Grid.Row="1" Grid.Column="1" Content="Activate" Tag="EnableReShade" IsEnabled="{Binding CanRun}" Click="Action_OnClick" />
+                  <Button Grid.Row="1" Grid.Column="2" Content="Deactivate" Tag="DisableReShade" IsEnabled="{Binding CanRun}" Click="Action_OnClick" />
+
+                  <TextBlock Grid.Row="2" Text="DXVK" VerticalAlignment="Center" Foreground="#C8D0E0" />
+                  <Button Grid.Row="2" Grid.Column="1" Content="Activate" Tag="EnableDxvk" IsEnabled="{Binding CanRun}" Click="Action_OnClick" />
+                  <Button Grid.Row="2" Grid.Column="2" Content="Deactivate" Tag="DisableDxvk" IsEnabled="{Binding CanRun}" Click="Action_OnClick" />
+                </Grid>
+
+                <TextBlock Text="Apply updates TCO, applies the selected engine configuration, activates DXVK and ReShade, then optionally patches Classic+."
+                           Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Progress" FontSize="17" FontWeight="SemiBold" />
+                  <ProgressBar Grid.Column="1" Width="120" Height="4" IsIndeterminate="{Binding IsRunning}" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding Phases}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:PhaseItem">
+                      <StackPanel HorizontalAlignment="Center" Spacing="6">
+                        <Border Width="25" Height="25" CornerRadius="13" Background="{Binding StatusBrush}">
+                          <TextBlock Text="{Binding StatusGlyph}" HorizontalAlignment="Center"
+                                     VerticalAlignment="Center" FontWeight="Bold" />
+                        </Border>
+                        <TextBlock Text="{Binding Label}" Foreground="#AAB3C4" FontSize="11" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card" IsVisible="{Binding HasSnapshot}">
+              <StackPanel Spacing="14">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Configuration detection" FontSize="17" FontWeight="SemiBold" />
+                  <Button Grid.Column="1" Content="Open report" IsEnabled="{Binding HasReport}"
+                          Click="OpenReport_OnClick" />
+                </Grid>
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="24" RowSpacing="14">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="Engine configuration" Foreground="#778197" FontSize="11" />
+                    <TextBlock Text="{Binding EngineDetection}" Foreground="{Binding EngineDetectionBrush}" FontWeight="SemiBold" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="ReShade" Foreground="#778197" FontSize="11" />
+                    <TextBlock Text="{Binding ReShadeDetection}" Foreground="{Binding ReShadeDetectionBrush}" FontWeight="SemiBold" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Spacing="3">
+                    <TextBlock Text="DXVK" Foreground="#778197" FontSize="11" />
+                    <TextBlock Text="{Binding DxvkDetection}" Foreground="{Binding DxvkDetectionBrush}" FontWeight="SemiBold" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="1" Grid.Column="1" Spacing="3">
+                    <TextBlock Text="TCC" Foreground="#778197" FontSize="11" />
+                    <TextBlock Text="{Binding TccDetection}" Foreground="{Binding TccDetectionBrush}" FontWeight="SemiBold" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="2" Spacing="3">
+                    <TextBlock Text="Shinra" Foreground="#778197" FontSize="11" />
+                    <TextBlock Text="{Binding ShinraDetection}" Foreground="{Binding ShinraDetectionBrush}" FontWeight="SemiBold" />
+                  </StackPanel>
+                  <StackPanel Grid.Row="2" Grid.Column="1" Spacing="3">
+                    <TextBlock Text="Pipeline" Foreground="#778197" FontSize="11" />
+                    <TextBlock Text="{Binding PipelineSummary}" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+              <Grid RowDefinitions="Auto,*" RowSpacing="12">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Live output" FontSize="17" FontWeight="SemiBold" />
+                  <Button Grid.Column="1" Content="Open log" IsEnabled="{Binding HasLog}" Click="OpenLog_OnClick" />
+                </Grid>
+                <TextBox x:Name="LogTextBox" Grid.Row="1" Height="190" Text="{Binding LogText}"
+                         IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="11" Background="#090C12"
+                         BorderBrush="#202738" ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         ScrollViewer.HorizontalScrollBarVisibility="Auto" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Readme">
+        <Border Classes="card" Margin="20,16,20,20">
+          <ScrollViewer>
+            <mv:MarkdownViewer x:Name="ReadmeViewer" Markdown="{Binding ReadmeText}" />
+          </ScrollViewer>
         </Border>
-      </StackPanel>
-    </ScrollViewer>
+      </TabItem>
+    </TabControl>
   </Grid>
 </Window>

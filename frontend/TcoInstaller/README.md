@@ -1,9 +1,21 @@
-# TCO Avalonia frontend
+# TCO Avalonia application
 
-This is a minimal Avalonia 12 desktop host for the root `Install.ps1` CLI. It
-does not duplicate installer logic: actions and options are passed to PowerShell
-through `ProcessStartInfo.ArgumentList`, while stdout and stderr are streamed
-into the window.
+This project is the complete TCO application: Avalonia UI, native C# installer
+backend, embedded verified payload, elevation transport, and single-file update
+handoff. It has no PowerShell runtime dependency.
+
+The installer tab presents only the complete Apply workflow plus paired
+Apply/Restore Engine, Activate/Deactivate ReShade, and Activate/Deactivate DXVK
+operations. The Readme tab renders the root Markdown document through
+`MarkView.Avalonia` using native controls.
+
+The engine selector exposes TCO Standard and TCO No-Dyn Light. PC Only is a
+separate engine option and is transported through elevation independently of
+the selected JSON configuration.
+
+The read-only scan action requires no elevation. It shows engine, ReShade, DXVK,
+TCC, and Shinra detection in the installer and writes a Markdown report under
+`%LocalAppData%\TCO\reports`.
 
 ## Open and build
 
@@ -16,35 +28,38 @@ dotnet build TCO.slnx -c Debug
 dotnet run --project frontend\TcoInstaller\TcoInstaller.csproj
 ```
 
-The application locates `Install.ps1` by walking upward from its executable and
-working directory. Set `TCO_PACKAGE_ROOT` to override discovery while debugging.
+Set `TCO_TERA_ROOT` to preselect a TERA installation while debugging.
 
 ## Execution model
 
-- Status runs without elevation.
-- File-changing actions relaunch the frontend through Windows UAC using a
-  Base64-encoded, typed request passed as one process argument.
-- The elevated frontend starts `powershell.exe` without a console window and
-  captures both output streams asynchronously.
-- `Install.ps1 -OutputMode JsonLines` emits `TCO_EVENT` records for reliable
-  phase progress. Normal CLI output remains enabled.
-- The authoritative transcript remains under the package `logs` directory.
+- `Status` runs without elevation.
+- File-changing actions relaunch through Windows UAC with a Base64-encoded typed
+  request.
+- `InstallerOrchestrator` invokes the native services in-process and reports
+  typed phase events and a structured installation snapshot.
+- The snapshot composes the engine, ReShade, DXVK, and TCC/Shinra configuration
+  models; the UI does not duplicate backend status fields.
+- The payload and `payload/manifest.json` are embedded in `TCO.Core` and verified
+  before use.
+- Logs, update staging, and sanitized Classic+ overrides live under
+  `%LocalAppData%\TCO`.
+- Cancellation and failures dispose an uncommitted `FileTransaction`, restoring
+  captured files and directories.
 
-The Avalonia shell builds on Windows, macOS, and Linux. The actual TCO backend is
-intentionally disabled outside Windows because the current graphics pipeline
-uses TERA's Windows DLL layout, UAC, and Windows registry checks.
+The application targets `net10.0-windows` because the graphics pipeline uses
+TERA's Windows DLL layout, UAC, display APIs, and registry checks.
 
 ## Publishing
 
-Start with the Windows build used by TERA players:
+The project file contains the release defaults. From the repository root, use:
 
 ```powershell
-dotnet publish frontend\TcoInstaller\TcoInstaller.csproj `
-  -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true
+.\tools\Publish-TCO.ps1
 ```
 
-Do not add the running frontend executable to the PowerShell-managed package
-manifest without first implementing staged executable replacement. Windows
-locks the running executable during an update. The current updater continues to
-manage `Install.ps1`, modules, and payload files.
+The output is the single self-contained
+`artifacts\release\TCO.Installer-win-x64.exe`. Native libraries may extract to
+the normal .NET single-file cache at runtime; TERA payload files are materialized
+only at their required game/configuration destinations. Publish the EXE with a
+GitHub asset digest or `<asset-name>.sha256` sidecar so the built-in updater can
+accept it. Repository build output is centralized under `artifacts`.

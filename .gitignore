@@ -1,5 +1,11 @@
 frontend/**/bin/
 frontend/**/obj/
+src/**/bin/
+src/**/obj/
+tests/**/bin/
+tests/**/obj/
+artifacts/
+logs/
 .idea/
 *.user
 *.suo

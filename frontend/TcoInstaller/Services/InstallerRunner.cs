@@ -1,106 +1,56 @@
-using System.Diagnostics;
 using System.Text;
-using System.Text.Json;
-using TcoInstaller.Models;
+using TcoInstaller.Backend;
+using TcoInstaller.Contracts;
 
 namespace TcoInstaller.Services;
 
+/// <summary>Runs the in-process orchestrator and records a timestamped per-action transcript.</summary>
 public sealed class InstallerRunner
 {
-    private const string EventPrefix = "TCO_EVENT ";
+    private readonly InstallerOrchestrator _orchestrator;
+
+    public InstallerRunner(InstallerOrchestrator orchestrator) => _orchestrator = orchestrator;
 
     public async Task<InstallerRunResult> RunAsync(
-        string packageRoot,
         InstallerRequest request,
-        IProgress<InstallerOutput> progress,
+        IProgress<InstallerProgress> progress,
         CancellationToken cancellationToken = default)
     {
-        var scriptPath = Path.Combine(packageRoot, "Install.ps1");
-        if (!File.Exists(scriptPath))
-            throw new FileNotFoundException("Install.ps1 was not found.", scriptPath);
+        Directory.CreateDirectory(AppStorage.Logs);
+        var logPath = Path.Combine(AppStorage.Logs, $"install-{DateTime.Now:yyyyMMdd-HHmmss}.log");
+        var sync = new object();
 
-        var logRoot = Path.Combine(packageRoot, "logs");
-        Directory.CreateDirectory(logRoot);
-        var logPath = Path.Combine(logRoot, $"install-ui-{DateTime.Now:yyyyMMdd-HHmmss}.log");
-
-        var startInfo = new ProcessStartInfo
+        void Log(string message)
         {
-            FileName = GetPowerShellPath(),
-            WorkingDirectory = packageRoot,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
-        };
+            var line = $"{DateTimeOffset.Now:o} {message}{Environment.NewLine}";
+            lock (sync)
+                File.AppendAllText(logPath, line, new UTF8Encoding(false));
+        }
 
-        AddArgument(startInfo, "-NoProfile");
-        AddArgument(startInfo, "-ExecutionPolicy", "Bypass");
-        AddArgument(startInfo, "-NonInteractive");
-        AddArgument(startInfo, "-File", scriptPath);
-        AddArgument(startInfo, "-Action", request.Action);
-        AddArgument(startInfo, "-TeraRoot", request.TeraRoot);
-        AddArgument(startInfo, "-LogPath", logPath);
-        AddArgument(startInfo, "-OutputMode", "JsonLines");
-
-        if (request.IncludeClassicPlus)
-            AddArgument(startInfo, "-IncludeClassicPlus");
-        if (!request.CheckForUpdates)
-            AddArgument(startInfo, "-SkipUpdate");
-
-        using var process = new Process { StartInfo = startInfo };
-        if (!process.Start())
-            throw new InvalidOperationException("PowerShell could not be started.");
-
-        var standardOutput = DrainAsync(process.StandardOutput, false, progress, cancellationToken);
-        var standardError = DrainAsync(process.StandardError, true, progress, cancellationToken);
-        await Task.WhenAll(standardOutput, standardError, process.WaitForExitAsync(cancellationToken));
-        return new InstallerRunResult(process.ExitCode, logPath);
-    }
-
-    private static async Task DrainAsync(
-        StreamReader reader,
-        bool isError,
-        IProgress<InstallerOutput> progress,
-        CancellationToken cancellationToken)
-    {
-        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        Log($"TCO native installer; Action={request.Action}; TeraRoot={request.TeraRoot}; IncludeClassicPlus={request.IncludeClassicPlus}");
+        try
         {
-            if (line.StartsWith(EventPrefix, StringComparison.Ordinal))
+            var snapshot = await _orchestrator.RunAsync(request, progress, Log, cancellationToken);
+            Log("Installer action completed successfully.");
+            string? reportPath = null;
+            if (request.Action == InstallerAction.Status && snapshot is not null)
             {
-                try
-                {
-                    var installerEvent = JsonSerializer.Deserialize<InstallerEvent>(
-                        line[EventPrefix.Length..],
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    progress.Report(new InstallerOutput(line, isError, installerEvent));
-                    continue;
-                }
-                catch (JsonException)
-                {
-                    // Preserve malformed event output as a normal log line.
-                }
+                Directory.CreateDirectory(AppStorage.Reports);
+                reportPath = Path.Combine(AppStorage.Reports, $"configuration-report-{DateTime.Now:yyyyMMdd-HHmmss}.md");
+                File.WriteAllText(reportPath, StatusService.FormatMarkdown(snapshot, DateTimeOffset.Now), new UTF8Encoding(false));
+                Log($"Configuration report written to {reportPath}");
             }
-
-            progress.Report(new InstallerOutput(line, isError));
+            return new InstallerRunResult(0, logPath, snapshot, ReportPath: reportPath);
         }
-    }
-
-    private static string GetPowerShellPath()
-    {
-        if (OperatingSystem.IsWindows())
+        catch (UpdateStagedException exception)
         {
-            var systemDirectory = Environment.GetFolderPath(Environment.SpecialFolder.System);
-            return Path.Combine(systemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
+            Log($"Update {exception.Update.Version} staged successfully; handing off executable replacement.");
+            return new InstallerRunResult(0, logPath, null, exception.Update);
         }
-
-        return "pwsh";
-    }
-
-    private static void AddArgument(ProcessStartInfo startInfo, params string[] values)
-    {
-        foreach (var value in values)
-            startInfo.ArgumentList.Add(value);
+        catch (Exception exception)
+        {
+            Log(exception.ToString());
+            throw;
+        }
     }
 }

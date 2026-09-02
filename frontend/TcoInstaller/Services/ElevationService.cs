@@ -1,13 +1,14 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Reflection;
 using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
-using TcoInstaller.Models;
+using System.Text.Json.Serialization;
+using TcoInstaller.Contracts;
 
 namespace TcoInstaller.Services;
 
+/// <summary>Serializes typed requests and relaunches the same executable through Windows UAC.</summary>
 public static class ElevationService
 {
     public static bool IsAdministrator()
@@ -21,7 +22,6 @@ public static class ElevationService
     }
 
     public static (bool Started, string? Error) RelaunchElevated(
-        string packageRoot,
         InstallerRequest request)
     {
         if (!OperatingSystem.IsWindows())
@@ -29,23 +29,22 @@ public static class ElevationService
 
         try
         {
-            var envelope = new ElevationEnvelope(packageRoot, request);
-            var requestPayload = Convert.ToBase64String(
-                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(envelope)));
+            var requestPayload = CreatePayload(request);
 
             var processPath = Environment.ProcessPath
                 ?? throw new InvalidOperationException("The current executable path is unavailable.");
             var startInfo = new ProcessStartInfo
             {
                 FileName = processPath,
-                WorkingDirectory = packageRoot,
+                WorkingDirectory = AppContext.BaseDirectory,
                 UseShellExecute = true,
                 Verb = "runas"
             };
 
             if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase))
             {
-                var assemblyPath = Assembly.GetEntryAssembly()?.Location
+                var assemblyPath = Environment.GetCommandLineArgs()
+                    .FirstOrDefault(argument => argument.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
                     ?? throw new InvalidOperationException("The application assembly path is unavailable.");
                 startInfo.ArgumentList.Add(assemblyPath);
             }
@@ -73,11 +72,24 @@ public static class ElevationService
         try
         {
             var json = Encoding.UTF8.GetString(Convert.FromBase64String(requestPayload));
-            return JsonSerializer.Deserialize<ElevationEnvelope>(json);
+            var envelope = JsonSerializer.Deserialize<ElevationEnvelope>(json, JsonOptions);
+            return envelope is { Schema: 1 } && Enum.IsDefined(envelope.Request.Action) ? envelope : null;
         }
         catch (Exception exception) when (exception is JsonException or FormatException)
         {
             return null;
         }
     }
+
+    public static string CreatePayload(InstallerRequest request)
+    {
+        var envelope = new ElevationEnvelope(1, request);
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(envelope, JsonOptions)));
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() }
+    };
 }

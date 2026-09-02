@@ -7,6 +7,8 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        if (Services.UpdateHandoff.TryApply(args))
+            return;
         App.PendingRequestPayload = GetArgument(args, "--request");
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }

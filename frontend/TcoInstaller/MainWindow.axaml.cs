@@ -4,7 +4,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using TcoInstaller.Models;
+using TcoInstaller.Backend;
+using TcoInstaller.Contracts;
 using TcoInstaller.Services;
 using TcoInstaller.ViewModels;
 
@@ -12,9 +13,10 @@ namespace TcoInstaller;
 
 public sealed partial class MainWindow : Window
 {
-    private readonly InstallerRunner _runner = new();
+    private readonly InstallerRunner _runner;
     private readonly MainWindowViewModel _viewModel;
     private readonly ElevationEnvelope? _pendingRequest;
+    private CancellationTokenSource? _runCancellation;
 
     public MainWindow() : this(App.PendingRequestPayload)
     {
@@ -24,10 +26,16 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
+        var orchestrator = new InstallerOrchestrator();
+        _runner = new InstallerRunner(orchestrator);
         _pendingRequest = ElevationService.ReadRequest(pendingRequestPayload);
-        var packageRoot = _pendingRequest?.PackageRoot ?? PackageLocator.FindPackageRoot();
-        _viewModel = new MainWindowViewModel(packageRoot);
+        _viewModel = new MainWindowViewModel(orchestrator.EngineConfigurations, orchestrator.DefaultEngineConfigurationId);
         DataContext = _viewModel;
+        ReadmeViewer.LinkClicked += (_, args) =>
+        {
+            if (Uri.TryCreate(args.Url, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http")
+                Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
+        };
 
         if (_pendingRequest is not null)
         {
@@ -54,8 +62,12 @@ public sealed partial class MainWindow : Window
             _viewModel.TeraRoot = folders[0].Path.LocalPath;
     }
 
-    private async void Run_OnClick(object? sender, RoutedEventArgs e) =>
-        await StartRequestAsync(_viewModel.CreateRequest());
+    private async void Action_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: not null } button &&
+            Enum.TryParse<InstallerAction>(button.Tag.ToString(), true, out var action))
+            await StartRequestAsync(_viewModel.CreateRequest(action));
+    }
 
     private async void RunPendingRequest(object? sender, EventArgs e)
     {
@@ -66,16 +78,10 @@ public sealed partial class MainWindow : Window
 
     private async Task StartRequestAsync(InstallerRequest request)
     {
-        if (_viewModel.PackageRoot is null)
-        {
-            _viewModel.FailRun("The TCO package root could not be located.");
-            return;
-        }
-
-        var requiresElevation = request.Action != "Status";
+        var requiresElevation = request.Action != InstallerAction.Status;
         if (requiresElevation && !ElevationService.IsAdministrator())
         {
-            var elevation = ElevationService.RelaunchElevated(_viewModel.PackageRoot, request);
+            var elevation = ElevationService.RelaunchElevated(request);
             if (!elevation.Started)
             {
                 _viewModel.StatusText = elevation.Error ?? "Elevation failed";
@@ -92,11 +98,9 @@ public sealed partial class MainWindow : Window
 
     private async Task RunCoreAsync(InstallerRequest request)
     {
-        if (_viewModel.PackageRoot is null)
-            return;
-
         _viewModel.BeginRun();
-        var progress = new Progress<InstallerOutput>(output =>
+        _runCancellation = new CancellationTokenSource();
+        var progress = new Progress<InstallerProgress>(output =>
         {
             _viewModel.HandleOutput(output);
             LogTextBox.CaretIndex = LogTextBox.Text?.Length ?? 0;
@@ -104,14 +108,31 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            var result = await _runner.RunAsync(_viewModel.PackageRoot, request, progress);
+            var result = await _runner.RunAsync(request, progress, _runCancellation.Token);
             _viewModel.CompleteRun(result);
+            if (result.Update is not null)
+            {
+                UpdateHandoff.Start(result.Update, request);
+                if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                    desktop.Shutdown();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _viewModel.FailRun("Operation cancelled. Any in-progress file changes were rolled back.");
         }
         catch (Exception exception)
         {
             _viewModel.FailRun(exception.ToString());
         }
+        finally
+        {
+            _runCancellation?.Dispose();
+            _runCancellation = null;
+        }
     }
+
+    private void Cancel_OnClick(object? sender, RoutedEventArgs e) => _runCancellation?.Cancel();
 
     private void OpenLog_OnClick(object? sender, RoutedEventArgs e)
     {
@@ -121,6 +142,18 @@ public sealed partial class MainWindow : Window
         Process.Start(new ProcessStartInfo
         {
             FileName = _viewModel.LastLogPath,
+            UseShellExecute = true
+        });
+    }
+
+    private void OpenReport_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (!_viewModel.HasReport || _viewModel.LastReportPath is null)
+            return;
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = _viewModel.LastReportPath,
             UseShellExecute = true
         });
     }

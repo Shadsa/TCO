@@ -12,6 +12,7 @@ public enum PhaseState
     Failed
 }
 
+/// <summary>Mutable presentation state for one installer workflow phase.</summary>
 public sealed class PhaseItem(string id, string label) : INotifyPropertyChanged
 {
     private PhaseState _state;
