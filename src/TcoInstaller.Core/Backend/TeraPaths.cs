@@ -5,7 +5,7 @@ public sealed class TeraPaths
 {
     public TeraPaths(string root)
     {
-        Root = Path.GetFullPath(root);
+        Root = NormalizeRoot(root);
         Binaries = Path.Combine(Root, "Binaries");
         Tools = Path.Combine(Root, "ReShadeTools");
         Config = Path.Combine(Root, "S1Game", "Config");
@@ -40,6 +40,10 @@ public sealed class TeraPaths
     };
 
     public IReadOnlyList<string> ConfigFiles => [S1Engine, SystemSettings, S1Option, S1Input, BaseInput];
+
+    /// <summary>Returns one stable installation identity regardless of a trailing directory separator.</summary>
+    public static string NormalizeRoot(string root) =>
+        Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
 
     public void Validate()
     {

@@ -184,7 +184,11 @@ internal sealed class GraphicsStateStore(
     private static bool PathMatches(string candidate, string expected)
     {
         if (string.IsNullOrWhiteSpace(candidate)) return false;
-        try { return Path.GetFullPath(candidate).Equals(expected, StringComparison.OrdinalIgnoreCase); }
+        try
+        {
+            return TeraPaths.NormalizeRoot(candidate)
+                .Equals(TeraPaths.NormalizeRoot(expected), StringComparison.OrdinalIgnoreCase);
+        }
         catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
         {
             return false;

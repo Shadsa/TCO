@@ -267,7 +267,9 @@ static async Task TestGraphicsTransitionsAsync()
 static async Task TestLegacyGraphicsStateMigrationAsync()
 {
     using var fixture = new TemporaryDirectory();
-    var paths = CreateTeraFixture(fixture.Path);
+    var selectedRoot = fixture.Path + Path.DirectorySeparatorChar;
+    var paths = CreateTeraFixture(selectedRoot);
+    Assert(paths.Root == Path.TrimEndingDirectorySeparator(selectedRoot), "TERA root retained a trailing separator.");
     var payload = new PayloadStore();
     var engine = new EngineConfigurationService(payload);
     var registry = new FixtureVulkanRegistry();
@@ -277,7 +279,7 @@ static async Task TestLegacyGraphicsStateMigrationAsync()
     {
         Schema = 1,
         CreatedAt = "2026-08-29T18:29:43+02:00",
-        TeraRoot = paths.Root,
+        TeraRoot = paths.Root + Path.DirectorySeparatorChar,
         OriginalFXAA = "True",
         DXVKSHA256 = payload.GetSha256("dxvk/d3d9.dll"),
         ReShadeSHA256 = payload.GetSha256("runtime/ReShade64.dll"),
