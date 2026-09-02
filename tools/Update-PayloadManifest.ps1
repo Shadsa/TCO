@@ -7,42 +7,25 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $payloadRoot = Join-Path $repositoryRoot 'payload'
 $manifestPath = Join-Path $payloadRoot 'manifest.json'
-$textExtensions = [Collections.Generic.HashSet[string]]::new(
-    [string[]]@('.fx', '.fxh', '.ini', '.json', '.md', '.txt', '.xml'),
+$executableExtensions = [Collections.Generic.HashSet[string]]::new(
+    [string[]]@('.dll', '.exe'),
     [StringComparer]::OrdinalIgnoreCase)
-
-function Get-CanonicalBytes {
-    param([Parameter(Mandatory)][string]$Path)
-
-    [byte[]]$bytes = [IO.File]::ReadAllBytes($Path)
-    if (-not $textExtensions.Contains([IO.Path]::GetExtension($Path))) {
-        return $bytes
-    }
-
-    $output = [Collections.Generic.List[byte]]::new($bytes.Length)
-    for ($index = 0; $index -lt $bytes.Length; $index++) {
-        if ($bytes[$index] -eq 13 -and $index + 1 -lt $bytes.Length -and $bytes[$index + 1] -eq 10) {
-            continue
-        }
-        $output.Add($bytes[$index])
-    }
-    return $output.ToArray()
-}
 
 $files = Get-ChildItem -LiteralPath $payloadRoot -File -Recurse |
     Where-Object FullName -ne $manifestPath |
+    Where-Object { $executableExtensions.Contains($_.Extension) } |
     Sort-Object FullName
 $entries = foreach ($file in $files) {
-    [byte[]]$canonical = Get-CanonicalBytes -Path $file.FullName
+    [byte[]]$bytes = [IO.File]::ReadAllBytes($file.FullName)
     [ordered]@{
         Path = ('payload/' + [IO.Path]::GetRelativePath($payloadRoot, $file.FullName).Replace('\', '/'))
-        Bytes = $canonical.LongLength
-        SHA256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($canonical))
+        Bytes = $bytes.LongLength
+        SHA256 = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
     }
 }
 
 $manifest = [ordered]@{
-    Package = 'TCO embedded payload'
+    Package = 'TCO executable payload integrity'
     Version = $Version
     FileCount = @($entries).Count
     Files = @($entries)

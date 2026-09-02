@@ -79,10 +79,16 @@ internal sealed class EngineBackupStore
         if (!File.Exists(statePath))
             throw new FileNotFoundException("No original engine configuration has been captured by TCO.", statePath);
         var state = ReadStateFile(statePath);
-        if (state.Schema != CurrentSchema ||
-            !Path.GetFullPath(state.TeraRoot).Equals(paths.Root, StringComparison.OrdinalIgnoreCase) ||
-            state.BackupFiles.Count != paths.EngineFiles.Count)
-            throw new InvalidDataException("The engine backup state does not match this installation.");
+        var issues = new List<string>();
+        if (state.Schema != CurrentSchema)
+            issues.Add($"Unsupported engine backup schema {state.Schema}; expected {CurrentSchema}.");
+        if (!PathIdentity.DirectoryEquals(state.TeraRoot, paths.Root))
+            issues.Add("Engine backup TERA root does not match the selected installation.");
+        if (state.BackupFiles.Count != paths.EngineFiles.Count)
+            issues.Add($"Engine backup covers {state.BackupFiles.Count} files; expected {paths.EngineFiles.Count}.");
+        if (issues.Count > 0)
+            throw new InvalidDataException("The engine backup state failed validation:" + Environment.NewLine +
+                " - " + string.Join(Environment.NewLine + " - ", issues));
 
         foreach (var backup in state.BackupFiles)
         {
@@ -132,9 +138,9 @@ internal sealed class EngineBackupStore
         if (Path.IsPathRooted(backupFile) || backupFile.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
             backupFile.Contains("..", StringComparison.Ordinal))
             throw new InvalidDataException("The engine backup contains an unsafe path.");
-        var root = Path.GetFullPath(GetBackupRoot(paths)).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var root = GetBackupRoot(paths);
         var path = Path.GetFullPath(Path.Combine(root, backupFile));
-        if (!path.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+        if (!PathIdentity.IsInsideDirectory(root, path))
             throw new InvalidDataException("The engine backup path escapes its root.");
         return path;
     }

@@ -37,9 +37,5 @@ internal static class D3D9Files
         File.Delete(path);
     }
 
-    public static bool IsInside(string root, string path)
-    {
-        var normalizedRoot = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
-        return Path.GetFullPath(path).StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase);
-    }
+    public static bool IsInside(string root, string path) => PathIdentity.IsInsideDirectory(root, path);
 }

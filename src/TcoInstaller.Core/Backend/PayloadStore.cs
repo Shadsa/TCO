@@ -6,8 +6,8 @@ using System.Text.Json;
 namespace TcoInstaller.Backend;
 
 /// <summary>
-/// Reads the embedded package and verifies its one-to-one manifest mapping, byte count, and SHA-256
-/// before any payload file can be copied into an installation.
+/// Reads embedded package content while keeping executable runtimes and editable configuration
+/// under separate trust policies. Only executable entries belong to the integrity manifest.
 /// </summary>
 public sealed class PayloadStore
 {
@@ -27,10 +27,11 @@ public sealed class PayloadStore
         var manifest = JsonSerializer.Deserialize<PackageManifest>(manifestStream, JsonOptions)
             ?? throw new InvalidDataException("The embedded payload manifest is invalid.");
         Version = manifest.Version;
-        if (manifest.FileCount != manifest.Files.Count)
+        if (string.IsNullOrWhiteSpace(manifest.Version) || manifest.FileCount != manifest.Files.Count)
             throw new InvalidDataException("The embedded manifest file count is inconsistent.");
         if (manifest.Files.Any(entry =>
                 !Normalize(entry.Path).StartsWith("payload/", StringComparison.OrdinalIgnoreCase) ||
+                !IsExecutablePayload(Normalize(entry.Path)["payload/".Length..]) ||
                 entry.Bytes < 0 ||
                 entry.Sha256.Length != 64 ||
                 !entry.Sha256.All(Uri.IsHexDigit)))
@@ -48,21 +49,23 @@ public sealed class PayloadStore
             throw new InvalidDataException("The embedded manifest contains duplicate paths.", exception);
         }
 
-        if (_entries.Count == 0)
-            throw new InvalidDataException("The embedded manifest contains no payload entries.");
         var resourcePaths = _resources.Keys
             .Where(path => !path.Equals("manifest.json", StringComparison.OrdinalIgnoreCase))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (!resourcePaths.SetEquals(_entries.Keys))
-            throw new InvalidDataException("The embedded payload and manifest do not describe the same files.");
+        var executablePaths = resourcePaths.Where(IsExecutablePayload).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (executablePaths.Count == 0 || !executablePaths.SetEquals(_entries.Keys))
+            throw new InvalidDataException("The integrity manifest must describe every executable payload, and only executable payloads.");
     }
 
     public string Version { get; }
-    public IEnumerable<string> Files => _entries.Keys.Order(StringComparer.OrdinalIgnoreCase);
+    public IEnumerable<string> Files => _resources.Keys
+        .Where(path => !path.Equals("manifest.json", StringComparison.OrdinalIgnoreCase))
+        .Order(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Verifies executable code only; editable package content is validated by its domain parser.</summary>
     public async Task ValidateAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var relativePath in Files)
+        foreach (var relativePath in _entries.Keys.Order(StringComparer.OrdinalIgnoreCase))
         {
             cancellationToken.ThrowIfCancellationRequested();
             await ReadVerifiedBytesAsync(relativePath, cancellationToken);
@@ -71,10 +74,12 @@ public sealed class PayloadStore
 
     public string ReadText(string relativePath)
     {
-        var bytes = ReadVerifiedBytesAsync(relativePath, CancellationToken.None).GetAwaiter().GetResult();
-        return Encoding.UTF8.GetString(bytes);
+        using var stream = OpenRaw(relativePath);
+        using var reader = new StreamReader(stream, Encoding.UTF8, true);
+        return reader.ReadToEnd();
     }
 
+    /// <summary>Reads an executable payload and rejects content that differs from its manifest entry.</summary>
     public async Task<byte[]> ReadVerifiedBytesAsync(string relativePath, CancellationToken cancellationToken)
     {
         relativePath = NormalizeRelative(relativePath);
@@ -94,7 +99,6 @@ public sealed class PayloadStore
         CancellationToken cancellationToken = default)
     {
         relativePath = NormalizeRelative(relativePath);
-        var entry = GetEntry(relativePath);
         var destinationDirectory = Path.GetDirectoryName(destination)
             ?? throw new InvalidOperationException($"Destination has no directory: {destination}");
         Directory.CreateDirectory(destinationDirectory);
@@ -106,8 +110,11 @@ public sealed class PayloadStore
             await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
                 await input.CopyToAsync(output, cancellationToken);
 
-            var copiedBytes = await File.ReadAllBytesAsync(temporary, cancellationToken);
-            Validate(entry, copiedBytes);
+            if (_entries.TryGetValue(relativePath, out var entry))
+            {
+                var copiedBytes = await File.ReadAllBytesAsync(temporary, cancellationToken);
+                Validate(entry, copiedBytes);
+            }
 
             transaction.CaptureFile(destination);
             if (File.Exists(destination))
@@ -125,6 +132,7 @@ public sealed class PayloadStore
         string relativePrefix,
         string destinationRoot,
         FileTransaction transaction,
+        bool overwriteExisting = true,
         CancellationToken cancellationToken = default)
     {
         relativePrefix = NormalizeRelative(relativePrefix).TrimEnd('/') + "/";
@@ -135,11 +143,14 @@ public sealed class PayloadStore
         foreach (var relativePath in matches)
         {
             var child = relativePath[relativePrefix.Length..].Replace('/', Path.DirectorySeparatorChar);
-            await CopyFileAsync(relativePath, Path.Combine(destinationRoot, child), transaction, cancellationToken);
+            var destination = Path.Combine(destinationRoot, child);
+            if (!overwriteExisting && File.Exists(destination))
+                continue;
+            await CopyFileAsync(relativePath, destination, transaction, cancellationToken);
         }
     }
 
-    public bool Contains(string relativePath) => _entries.ContainsKey(NormalizeRelative(relativePath));
+    public bool Contains(string relativePath) => _resources.ContainsKey(NormalizeRelative(relativePath));
 
     public string GetSha256(string relativePath) => GetEntry(NormalizeRelative(relativePath)).Sha256;
 
@@ -155,38 +166,23 @@ public sealed class PayloadStore
     private ManifestEntry GetEntry(string relativePath) =>
         _entries.TryGetValue(relativePath, out var entry)
             ? entry
-            : throw new FileNotFoundException("The embedded manifest does not describe this payload file.", relativePath);
+            : throw new FileNotFoundException("The executable integrity manifest does not describe this payload file.", relativePath);
 
     private static void Validate(ManifestEntry entry, byte[] bytes)
     {
-        if (Matches(entry, bytes)) return;
-
-        var normalized = NormalizeLineEndings(bytes);
-        if (normalized.Length != bytes.Length && Matches(entry, normalized)) return;
-
-        throw new InvalidDataException($"Embedded payload validation failed: {entry.Path}");
+        if (!Matches(entry, bytes))
+            throw new InvalidDataException($"Executable payload validation failed: {entry.Path}");
     }
 
     private static bool Matches(ManifestEntry entry, byte[] bytes) =>
         entry.Bytes == bytes.LongLength &&
         entry.Sha256.Equals(Convert.ToHexString(SHA256.HashData(bytes)), StringComparison.OrdinalIgnoreCase);
 
-    private static byte[] NormalizeLineEndings(byte[] bytes)
+    private static bool IsExecutablePayload(string relativePath)
     {
-        var crlfCount = 0;
-        for (var index = 0; index < bytes.Length - 1; index++)
-            if (bytes[index] == (byte)'\r' && bytes[index + 1] == (byte)'\n') crlfCount++;
-        if (crlfCount == 0) return bytes;
-
-        var normalized = new byte[bytes.Length - crlfCount];
-        var target = 0;
-        for (var source = 0; source < bytes.Length; source++)
-        {
-            if (bytes[source] == (byte)'\r' && source + 1 < bytes.Length && bytes[source + 1] == (byte)'\n')
-                continue;
-            normalized[target++] = bytes[source];
-        }
-        return normalized;
+        var extension = Path.GetExtension(relativePath);
+        return extension.Equals(".dll", StringComparison.OrdinalIgnoreCase) ||
+               extension.Equals(".exe", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string Normalize(string value) => value.Replace('\\', '/');

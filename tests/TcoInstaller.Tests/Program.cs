@@ -21,6 +21,7 @@ var tests = new (string Name, Func<Task> Run)[]
 {
     ("embedded payload integrity", TestPayloadAsync),
     ("INI mutation and duplicate protection", TestIniAsync),
+    ("path normalization and installation identity", TestPathNormalizationAsync),
     ("file transaction rollback and commit", TestTransactionAsync),
     ("engine configuration apply and rollback", TestEngineConfigurationAsync),
     ("engine configuration variants and durable restore", TestEngineConfigurationsAndRestoreAsync),
@@ -55,10 +56,15 @@ static async Task TestPayloadAsync()
     var presetFiles = payload.Files.Where(path => path.StartsWith(
         EngineConfigurationService.PresetFolder + "/",
         StringComparison.OrdinalIgnoreCase)).ToArray();
-    Assert(presetFiles.SequenceEqual([
-        EngineConfigurationService.PresetFolder + "/01-tco-standard.json",
-        EngineConfigurationService.PresetFolder + "/02-tco-no-dyn-light.json"
-    ]), "The separated engine configurations are not embedded.");
+    Assert(presetFiles.Contains(EngineConfigurationService.PresetFolder + "/01-tco-standard.json", StringComparer.OrdinalIgnoreCase) &&
+           presetFiles.Contains(EngineConfigurationService.PresetFolder + "/02-tco-no-dyn-light.json", StringComparer.OrdinalIgnoreCase),
+        "The built-in engine configurations are not embedded.");
+    Assert(payload.ReadText(presetFiles[0]).Contains("TCO Standard", StringComparison.Ordinal),
+        "Editable engine configuration could not be read without an integrity entry.");
+    Assert(payload.GetSha256("runtime/ReShade64.dll").Length == 64,
+        "ReShade executable is missing from the integrity manifest.");
+    Assert(payload.GetSha256("dxvk/d3d9.dll").Length == 64,
+        "DXVK executable is missing from the integrity manifest.");
     Assert(!payload.Contains("engine-profile.json") && !payload.Contains("engine-profiles.json"),
         "The obsolete shared engine catalog is still embedded.");
 }
@@ -105,6 +111,21 @@ static Task TestTransactionAsync()
     return Task.CompletedTask;
 }
 
+static Task TestPathNormalizationAsync()
+{
+    using var fixture = new TemporaryDirectory();
+    var canonical = TeraPaths.NormalizeRoot(fixture.Path);
+    var alternateSeparators = canonical.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+    var paths = new TeraPaths(alternateSeparators + Path.AltDirectorySeparatorChar + Path.AltDirectorySeparatorChar);
+
+    Assert(paths.Root == canonical, "TERA root did not normalize separators and repeated trailing separators.");
+    Assert(TeraPaths.NormalizeRoot(canonical.ToUpperInvariant())
+        .Equals(paths.Root, StringComparison.OrdinalIgnoreCase), "TERA root identity became case-sensitive.");
+    Assert(!TeraPaths.NormalizeRoot(fixture.Path + "-other")
+        .Equals(paths.Root, StringComparison.OrdinalIgnoreCase), "Different installation roots collapsed to one identity.");
+    return Task.CompletedTask;
+}
+
 static Task TestEngineConfigurationAsync()
 {
     using var fixture = new TemporaryDirectory();
@@ -138,17 +159,8 @@ static Task TestEngineConfigurationsAndRestoreAsync()
         engine.Apply(paths, transaction, "tco-no-dyn-light", pcOnly: true);
         transaction.Commit();
     }
-    Assert(IniFile.GetValue(paths.S1Engine, "Engine.Engine", "bUseTextureStreaming") == "False", "Texture streaming was not disabled.");
-    Assert(IniFile.GetValue(paths.S1Engine, "TextureStreaming", "PoolSize") == "4096", "Texture pool fallback was not applied.");
-    Assert(IniFile.GetValue(paths.S1Engine, "TextureStreaming", "AllowStreamingLightmaps") == "False", "Lightmap streaming was not disabled.");
-    Assert(IniFile.GetValue(paths.S1Engine, "TextureStreaming", "UsePriorityStreaming") == "False", "Priority streaming was not disabled.");
-    Assert(IniFile.GetValue(paths.S1Engine, "TextureStreaming", "UseDynamicStreaming") == "False", "Dynamic streaming was not disabled.");
-    Assert(IniFile.GetValue(paths.S1Engine, "Engine.Engine", "TerrainMaterialMaxTextureCount") == "64", "Terrain texture count was not applied.");
-    Assert(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "DynamicLights") == "False", "Dynamic lights were not disabled.");
-    Assert(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "MinShadowResolution") == "1024", "Minimum shadow resolution was not applied.");
-    Assert(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "SkeletalMeshLODBias") == "-2", "Skeletal mesh LOD bias was not applied.");
-    Assert(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "ParticleLODBias") == "-2", "Particle LOD bias was not applied.");
-    Assert(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "SpeedTreeBillboards") == "False", "SpeedTree billboards were not disabled.");
+    Assert(engine.GetMismatches(paths, "tco-no-dyn-light").Count == 0,
+        "The selected customizable engine configuration was not applied faithfully.");
     Assert(IniFile.GetValue(paths.S1Engine, "WinDrv.WindowsClient", "AllowJoystickInput") == "0", "PC Only was not enabled.");
     Assert(engine.HasValidBackup(paths), "Original engine backup was not captured.");
     Assert(engine.Inspect(paths) is { Id: "tco-no-dyn-light", PcOnly: true }, "Applied engine configuration or PC Only state was not detected.");
@@ -162,19 +174,21 @@ static Task TestEngineConfigurationsAndRestoreAsync()
         File.WriteAllText(engineStatePath, JsonSerializer.Serialize(new
         {
             Schema = 1,
-            TeraRoot = paths.Root,
+            TeraRoot = paths.Root + Path.DirectorySeparatorChar,
             CreatedAt = DateTimeOffset.Now,
             Files = legacyFiles
         }));
     }
-    Assert(engine.HasValidBackup(paths), "The previous engine backup ledger is no longer readable.");
+    Assert(engine.HasValidBackup(new TeraPaths(paths.Root + Path.DirectorySeparatorChar)),
+        "The previous engine backup ledger is no longer readable with a trailing-separator root.");
 
     using (var transaction = new FileTransaction())
     {
         engine.Apply(paths, transaction, "tco-standard", pcOnly: false);
         transaction.Commit();
     }
-    Assert(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "DynamicLights") == "True", "TCO Standard did not restore dynamic lights.");
+    Assert(engine.GetMismatches(paths, "tco-standard").Count == 0,
+        "TCO Standard was not applied from its current JSON content.");
     Assert(IniFile.GetValue(paths.S1Engine, "WinDrv.WindowsClient", "AllowJoystickInput") == "1", "PC Only was not disabled.");
     Assert(engine.Inspect(paths) is { Id: "tco-standard", PcOnly: false }, "TCO Standard was not detected.");
 
@@ -209,6 +223,23 @@ static async Task TestGraphicsTransitionsAsync()
     var dxvkStatePath = Path.Combine(paths.Tools, "dxvk-configuration.json");
     Assert(File.Exists(reshadeStatePath), "Separated ReShade state was not created.");
     Assert(File.Exists(dxvkStatePath), "Separated DXVK state was not created.");
+    var customReShadeSetting = "UserManagedSetting=keep-me";
+    var customPresetSetting = "UserPresetSetting=keep-me";
+    var customShader = Path.Combine(paths.Binaries, "reshade-shaders", "Shaders", "Deband.fx");
+    File.AppendAllText(Path.Combine(paths.Binaries, "ReShade.ini"), Environment.NewLine + customReShadeSetting);
+    File.AppendAllText(Path.Combine(paths.Binaries, "TERA_Natural_Clarity.ini"), Environment.NewLine + customPresetSetting);
+    File.WriteAllText(customShader, "// user-customized shader");
+    using (var transaction = new FileTransaction())
+    {
+        await graphics.EnablePipelineAsync(paths, transaction, CancellationToken.None);
+        transaction.Commit();
+    }
+    Assert(File.ReadAllText(Path.Combine(paths.Binaries, "ReShade.ini")).Contains(customReShadeSetting, StringComparison.Ordinal),
+        "Reapplying ReShade overwrote a user configuration value.");
+    Assert(File.ReadAllText(Path.Combine(paths.Binaries, "TERA_Natural_Clarity.ini")).Contains(customPresetSetting, StringComparison.Ordinal),
+        "Reapplying ReShade overwrote the user preset.");
+    Assert(File.ReadAllText(customShader) == "// user-customized shader",
+        "Reapplying ReShade overwrote a user-customized shader.");
     var reshadeState = JsonSerializer.Deserialize<ReShadeConfiguration>(File.ReadAllText(reshadeStatePath))!;
     var dxvkState = JsonSerializer.Deserialize<DxvkConfiguration>(File.ReadAllText(dxvkStatePath))!;
     File.WriteAllText(Path.Combine(paths.Tools, "tera-reshade-proxy-state.json"), JsonSerializer.Serialize(new

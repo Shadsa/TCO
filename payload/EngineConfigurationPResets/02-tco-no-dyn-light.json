@@ -12,7 +12,7 @@
         "MinSmoothedFrameRate": "30",
         "MaxSmoothedFrameRate": "141",
         "TerrainMaterialMaxTextureCount": "64",
-        "bUseTextureStreaming": "False"
+        "bUseTextureStreaming": "True"
       },
       "Engine.SeqAct_Interp": {
         "RenderingOverrides": "(bAllowAmbientOcclusion=True,bAllowDominantWholeSceneDynamicShadows=True,bAllowMotionBlurSkinning=False,bAllowTemporalAA=False,bAllowLightShafts=True)"
@@ -45,9 +45,9 @@
         "PoolSize": "4096",
         "MemoryMargin": "20",
         "MinTextureResidentMipCount": "7",
-        "AllowStreamingLightmaps": "False",
-        "UsePriorityStreaming": "False",
-        "UseDynamicStreaming": "False",
+        "AllowStreamingLightmaps": "True",
+        "UsePriorityStreaming": "True",
+        "UseDynamicStreaming": "True",
         "bEnableAsyncDefrag": "False",
         "bEnableAsyncReallocation": "False",
         "BoostPlayerTextures": "3.0"

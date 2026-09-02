@@ -64,10 +64,10 @@ public sealed class InstallerOrchestrator
         {
             Report(progress, log, "update", "skipped", "No update is required for this action.");
         }
-        Report(progress, log, "preflight", "started", "Validating embedded payload and target installation.");
+        Report(progress, log, "preflight", "started", "Validating executable payloads and target installation.");
         paths.Validate();
         await _payload.ValidateAsync(cancellationToken);
-        Report(progress, log, "preflight", "completed", $"Embedded TCO {_payload.Version} payload validated.");
+        Report(progress, log, "preflight", "completed", $"Embedded TCO {_payload.Version} runtime integrity validated.");
 
         try
         {

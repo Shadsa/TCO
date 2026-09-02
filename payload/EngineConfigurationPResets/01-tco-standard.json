@@ -2,7 +2,7 @@
   "Schema": 1,
   "Id": "tco-standard",
   "Name": "TCO Standard",
-  "Description": "Maximum-quality TCO profile with texture streaming disabled and a 4096 MB texture pool fallback.",
+  "Description": "Maximum-quality TCO profile with texture improvement",
   "IsDefault": true,
   "Files": {
     "S1Engine.ini": {
@@ -12,7 +12,7 @@
         "MinSmoothedFrameRate": "30",
         "MaxSmoothedFrameRate": "141",
         "TerrainMaterialMaxTextureCount": "64",
-        "bUseTextureStreaming": "False"
+        "bUseTextureStreaming": "True"
       },
       "Engine.SeqAct_Interp": {
         "RenderingOverrides": "(bAllowAmbientOcclusion=True,bAllowDominantWholeSceneDynamicShadows=True,bAllowMotionBlurSkinning=False,bAllowTemporalAA=False,bAllowLightShafts=True)"
@@ -45,9 +45,9 @@
         "PoolSize": "4096",
         "MemoryMargin": "20",
         "MinTextureResidentMipCount": "7",
-        "AllowStreamingLightmaps": "False",
-        "UsePriorityStreaming": "False",
-        "UseDynamicStreaming": "False",
+        "AllowStreamingLightmaps": "True",
+        "UsePriorityStreaming": "True",
+        "UseDynamicStreaming": "True",
         "bEnableAsyncDefrag": "False",
         "bEnableAsyncReallocation": "False",
         "BoostPlayerTextures": "3.0"
@@ -82,7 +82,7 @@
         "SpeedTreeLeafQuality": "2",
         "SpeedTreeLeafShadows": "True",
         "SpeedTreeLeafWind": "True",
-        "OnlyStreamInTextures": "False",
+        "OnlyStreamInTextures": "True",
         "LensFlares": "True",
         "FogVolumes": "True",
         "FloatingPointRenderTargets": "True",
@@ -122,7 +122,7 @@
         "MinTextureResidentMipCount": "7",
         "AllowD3D10": "False",
         "AllowD3D11": "False",
-        "ImageReflectionTextureSize": "1024"
+        "ImageReflectionTextureSize": "4096"
       }
     },
     "S1Option.ini": {

@@ -29,7 +29,7 @@ public sealed class FileTransaction : IDisposable
 
     public void CaptureDirectory(string path)
     {
-        path = Path.GetFullPath(path);
+        path = PathIdentity.NormalizeDirectory(path);
         if (!_captured.Add(path))
             return;
 

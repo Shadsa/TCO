@@ -181,19 +181,8 @@ internal sealed class GraphicsStateStore(
         return false;
     }
 
-    private static bool PathMatches(string candidate, string expected)
-    {
-        if (string.IsNullOrWhiteSpace(candidate)) return false;
-        try
-        {
-            return TeraPaths.NormalizeRoot(candidate)
-                .Equals(TeraPaths.NormalizeRoot(expected), StringComparison.OrdinalIgnoreCase);
-        }
-        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            return false;
-        }
-    }
+    private static bool PathMatches(string candidate, string expected) =>
+        PathIdentity.DirectoryEquals(candidate, expected);
 
     private static bool IsSha256(string value) => value.Length == 64 && value.All(Uri.IsHexDigit);
 

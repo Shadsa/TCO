@@ -35,8 +35,10 @@ public sealed class GraphicsPipelineService
 
     public async Task ValidatePayloadAsync(CancellationToken cancellationToken)
     {
-        foreach (var path in new[] { ReShadeRuntime, DxvkRuntime, ReShadeConfigPayload, ReShadePresetPayload })
+        foreach (var path in new[] { ReShadeRuntime, DxvkRuntime })
             await payload.ReadVerifiedBytesAsync(path, cancellationToken);
+        foreach (var path in new[] { ReShadeConfigPayload, ReShadePresetPayload })
+            if (!payload.Contains(path)) throw new InvalidDataException($"The embedded ReShade default is missing: {path}");
         if (!payload.Files.Any(path => path.StartsWith("reshade/reshade-shaders/", StringComparison.OrdinalIgnoreCase)))
             throw new InvalidDataException("The embedded ReShade shader tree is missing.");
         _ = displays.GetPrimaryResolution();
@@ -166,12 +168,18 @@ public sealed class GraphicsPipelineService
             transaction.CaptureFile(files.DisabledConfig);
             File.Move(files.DisabledConfig, files.ReShadeConfig, true);
         }
-        else
+        else if (!File.Exists(files.ReShadeConfig))
         {
             await payload.CopyFileAsync(ReShadeConfigPayload, files.ReShadeConfig, transaction, cancellationToken);
         }
-        await payload.CopyFileAsync(ReShadePresetPayload, files.ReShadePreset, transaction, cancellationToken);
-        await payload.CopyTreeAsync("reshade/reshade-shaders", files.ReShadeShaders, transaction, cancellationToken);
+        if (!File.Exists(files.ReShadePreset))
+            await payload.CopyFileAsync(ReShadePresetPayload, files.ReShadePreset, transaction, cancellationToken);
+        await payload.CopyTreeAsync(
+            "reshade/reshade-shaders",
+            files.ReShadeShaders,
+            transaction,
+            overwriteExisting: false,
+            cancellationToken: cancellationToken);
 
         transaction.CaptureFile(files.ReShadeConfig);
         IniFile.SetValue(files.ReShadeConfig, "PROXY", "EnableProxyLibrary", enableDxvk ? "1" : "0");
