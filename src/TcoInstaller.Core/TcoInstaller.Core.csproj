@@ -3,7 +3,6 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <AssemblyName>TCO.Core</AssemblyName>
     <RootNamespace>TcoInstaller</RootNamespace>
-    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

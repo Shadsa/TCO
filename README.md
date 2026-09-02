@@ -177,6 +177,8 @@ runtime, Avalonia dependencies, README, configuration presets, and verified TCO
 payload; it needs no companion files. The publish script cleans only that release
 directory, verifies the one-file contract, and prints its SHA-256. Generated build
 files are centralized under `artifacts` and can be discarded wholesale.
+Every Release build invokes the same packaging script as a guarded post-build
+step. The product version is centralized in `Directory.Build.props`.
 The TCO backend is intentionally
 Windows-only because TERA, UAC, D3D9 DLL placement, display enumeration, and the
 ReShade Vulkan-layer registry are Windows-specific.

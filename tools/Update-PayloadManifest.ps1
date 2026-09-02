@@ -1,7 +1,7 @@
 #Requires -Version 7.0
 
 [CmdletBinding()]
-param([string]$Version = '1.1.0')
+param([string]$Version = '1.0')
 
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))

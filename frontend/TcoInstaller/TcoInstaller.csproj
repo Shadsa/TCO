@@ -7,7 +7,6 @@
     <AssemblyName>TCO.Installer</AssemblyName>
     <AssemblyName Condition="'$(Configuration)' == 'Release'">TCO.Installer-win-x64</AssemblyName>
     <RootNamespace>TcoInstaller</RootNamespace>
-    <Version>1.1.0</Version>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
@@ -44,6 +43,13 @@
            Text="Single-file publish did not produce $(PublishDir)$(TargetName).exe." />
     <Error Condition="'@(PublishedOutput->Count())' != '1'"
            Text="Single-file release must contain exactly one file. Found: @(PublishedOutput, ', ')." />
+  </Target>
+
+  <!-- A Release build also refreshes the one-file distribution without recursively rebuilding. -->
+  <Target Name="PackageSingleExecutableAfterBuild"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' and '$(DesignTimeBuild)' != 'true' and '$(SkipTcoPostBuildPackage)' != 'true'">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\tools\Publish-TCO.ps1&quot; -NoRestore -NoBuild" />
   </Target>
 
 </Project>

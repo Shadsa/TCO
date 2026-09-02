@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$NoRestore
+    [switch]$NoRestore,
+    [switch]$NoBuild
 )
 
 Set-StrictMode -Version Latest
@@ -30,6 +31,11 @@ $arguments = @(
 if ($NoRestore) {
     $arguments += '--no-restore'
 }
+if ($NoBuild) {
+    $arguments += '--no-build'
+}
+
+$arguments += '-p:SkipTcoPostBuildPackage=true'
 
 & dotnet @arguments
 if ($LASTEXITCODE -ne 0) {
@@ -41,7 +47,15 @@ if ($publishedFiles.Count -ne 1 -or $publishedFiles[0].Extension -ne '.exe') {
     throw "Expected exactly one published EXE, found $($publishedFiles.Count) file(s)."
 }
 
-$hash = Get-FileHash -LiteralPath $publishedFiles[0].FullName -Algorithm SHA256
+$sha256 = [Security.Cryptography.SHA256]::Create()
+$stream = [IO.File]::OpenRead($publishedFiles[0].FullName)
+try {
+    $hash = [BitConverter]::ToString($sha256.ComputeHash($stream)).Replace('-', '')
+}
+finally {
+    $stream.Dispose()
+    $sha256.Dispose()
+}
 Write-Host "Single-file release: $($publishedFiles[0].FullName)"
 Write-Host "Size: $([Math]::Round($publishedFiles[0].Length / 1MB, 2)) MiB"
-Write-Host "SHA-256: $($hash.Hash)"
+Write-Host "SHA-256: $hash"
