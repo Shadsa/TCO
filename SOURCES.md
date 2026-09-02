@@ -11,3 +11,8 @@
 The package contains local copies of the runtime and shader files used by the
 tested configuration. Refer to each upstream project for its license and
 source code.
+
+# Configuration References
+
+- TERA Better FPS and graphics-quality settings: https://wiki.novaverso.online/en/tera/technical/better-fps
+- Epic legacy Unreal Engine 3 documentation: https://docs.unrealengine.com/udk/Three/

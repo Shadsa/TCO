@@ -1,0 +1,445 @@
+{
+  "Package": "TERA Complete Graphics and Classic+ Profile",
+  "Version": "2026.08.30-final",
+  "BuiltAt": "2026-08-30T21:32:35.4829788+02:00",
+  "Pipeline": "ReShade D3D9 -> DXVK D3D9 -> Vulkan",
+  "ReShade": {
+    "Version": "6.8.0 full add-on",
+    "RuntimeSHA256": "0CEE63F9C9F13F3AC909C5B4903F4DBB4B719A7AB3B4F13B0DEAF83C814B94F7",
+    "OverlayKey": "Home",
+    "NativeFXAA": false,
+    "Techniques": [
+      "SMAA@SMAA.fx",
+      "Deband@Deband.fx",
+      "Tonemap@Tonemap.fx",
+      "ContrastAdaptiveSharpen@CAS.fx",
+      "prod80_02_Bloom@PD80_02_Bloom.fx",
+      "prod80_03_FilmicTonemap@PD80_03_Filmic_Adaptation.fx",
+      "prod80_03_Shadows_Midtones_Highlights@PD80_03_Shadows_Midtones_Highlights.fx",
+      "DepthHaze@DepthHaze.fx",
+      "CinematicDOF@CinematicDOF.fx"
+    ]
+  },
+  "DXVK": {
+    "EntryPoint": "d3d9_dxvk.dll",
+    "SHA256": "2740233A94774FA64A1E07C6EAF94F67027A3C7594FF3B48F7A1C9801777E5A9"
+  },
+  "GenericDepth": {
+    "DepthCopyAtClearIndex": 1,
+    "DepthCopyBeforeClears": 2,
+    "DrawStatsHeuristic": 2,
+    "FilterFormat": 4,
+    "FilterFormatName": "D24S8",
+    "FilterResolution": "Detected from the active primary display during installation",
+    "UseAspectRatioHeuristics": 3
+  },
+  "Engine": {
+    "TexturePoolMB": 4096,
+    "NativeMotionBlur": false,
+    "NativeDepthOfField": false,
+    "NativeRadialBlur": false,
+    "NativeTemporalAA": false,
+    "Bloom": true,
+    "LensFlares": true,
+    "AmbientOcclusion": true,
+    "WholeSceneDynamicShadows": true
+  },
+  "ClassicPlus": {
+    "Sanitized": true,
+    "ShinraAudioMuted": true,
+    "ShinraPasteKey": "Ctrl+Home"
+  },
+  "FileCount": 78,
+  "Files": [
+    {
+      "Path": "Install.ps1",
+      "Bytes": 35332,
+      "SHA256": "E0C9CEC1BE5F81906A398E0D2B2587AEA8D28719DB5615FBB9F33A0518F2FD46"
+    },
+    {
+      "Path": "LICENSE",
+      "Bytes": 35149,
+      "SHA256": "3972DC9744F6499F0F9B2DBF76696F2AE7AD8AF9B23DDE66D6AF86C9DFB36986"
+    },
+    {
+      "Path": "modules/apply_tera_final_stable.ps1",
+      "Bytes": 5482,
+      "SHA256": "1E3AFDBA8EAA7406D89CA5E9367ECA9EE80A14B448E04AB25670130289C00D34"
+    },
+    {
+      "Path": "modules/display_resolution.ps1",
+      "Bytes": 2811,
+      "SHA256": "71D43AF788F4157F3B0E7E2D756F769ACD20EF6A1DF24E1C11145986237631AA"
+    },
+    {
+      "Path": "modules/engine_profile.ps1",
+      "Bytes": 3508,
+      "SHA256": "83D6B30FCBB1BCB5333AF24426A4A00D6D63AD3640FCDD338492C34B52463220"
+    },
+    {
+      "Path": "modules/update_tco.ps1",
+      "Bytes": 14153,
+      "SHA256": "BFD7EC17678FF150DAE2E86F01C030325107ED4C55F9C0DE3593BF125535F100"
+    },
+    {
+      "Path": "modules/tera_graphics_pipeline.ps1",
+      "Bytes": 23086,
+      "SHA256": "376780CE28EEC01C372BC8A0FCEC60E522FDA92742507E42350C67BBF48642A2"
+    },
+    {
+      "Path": "payload/classicplus/shinra/hotkeys.xml",
+      "Bytes": 2342,
+      "SHA256": "480F2EAE00F629088D912520DBD1E8543DB4BB3DCFC2FB75E74AF048BC9A5EFE"
+    },
+    {
+      "Path": "payload/classicplus/shinra/server-overrides.txt",
+      "Bytes": 908,
+      "SHA256": "66CFD5804B3903A6D4B6586D1AD6A73A20058935D277CC69F90C9808F7ADBF4E"
+    },
+    {
+      "Path": "payload/classicplus/shinra/window_backup.xml",
+      "Bytes": 5380,
+      "SHA256": "7277205DE7A2495FF90C11954EBDB484F58CFF806ACC790ED73882824026C03E"
+    },
+    {
+      "Path": "payload/classicplus/shinra/window.xml",
+      "Bytes": 5381,
+      "SHA256": "1560ECDD43A217A8AD7BAD8276BB55CAFD0853FDFBDA74F3A40CD08D8B052B3E"
+    },
+    {
+      "Path": "payload/classicplus/tcc/tcc-settings.json",
+      "Bytes": 32356,
+      "SHA256": "B4AD8B240BC5F92F9EB920FD6FD6522AC4D13BB307AD325C84FA030F70D13FBB"
+    },
+    {
+      "Path": "payload/engine-profiles.json",
+      "Bytes": 963,
+      "SHA256": "06999E6CC261A61FC045D7EEF835EF51C2E935042C22FDCC1FADDB7316AF8D65"
+    },
+    {
+      "Path": "payload/engine-profile.json",
+      "Bytes": 5357,
+      "SHA256": "D785332932C91931CD2839E430BDC47EBA83383C52BEA975E50145C602DC9FCB"
+    },
+    {
+      "Path": "payload/dxvk/d3d9.dll",
+      "Bytes": 4149262,
+      "SHA256": "2740233A94774FA64A1E07C6EAF94F67027A3C7594FF3B48F7A1C9801777E5A9"
+    },
+    {
+      "Path": "payload/engine-reference/BaseInput.ini",
+      "Bytes": 25363,
+      "SHA256": "8410C314FBE43CB1972972996864503E68DD4EEF294A1DFD94C6D927F97615BB"
+    },
+    {
+      "Path": "payload/engine-reference/S1Engine.ini",
+      "Bytes": 33700,
+      "SHA256": "2F768F3F34BC1763164BB0D9A342C83866BEEF8589B9757D448FA9A420EB3342"
+    },
+    {
+      "Path": "payload/engine-reference/S1Input.ini",
+      "Bytes": 19929,
+      "SHA256": "5FF27787EAB43648FE8BF6C44ABD9862DF62C5DAB4F5D4CE0CB573EF7E8D5960"
+    },
+    {
+      "Path": "payload/engine-reference/S1Option.ini",
+      "Bytes": 3745,
+      "SHA256": "862293072AB92524561E96C8B130C577F31DC94364C6566D8B683ADF44AF97A6"
+    },
+    {
+      "Path": "payload/engine-reference/S1SystemSettings.ini",
+      "Bytes": 26212,
+      "SHA256": "A6CFBC44A7466A8E74E9BA7C55DA803C31D5B2E35B095082B8E21C3D0878D683"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/Deband.fx",
+      "Bytes": 9551,
+      "SHA256": "8959CA995090BC89762CC0BF4BA3BB1FFCFFDF143E9E0DDAF84F0E004B53DD29"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/MotionBlur/LinearMotionBlur.fx",
+      "Bytes": 3371,
+      "SHA256": "396A6D5417216056F60FB3B23E74F19DF6ED8D3276DDEC3C18DA5A0FD297B978"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/MotionBlur/MotionEstimation.fx",
+      "Bytes": 23076,
+      "SHA256": "8EB89ED8AAF1BECF2FDE221BB643F47B48AC9C8D97617D8A58C9B75AC76AAFA2"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/MotionBlur/MotionEstimation.fxh",
+      "Bytes": 22406,
+      "SHA256": "1EAC4278534D2A3633C6D89B78A6C9921BE6BCC516D3B65881179280563C515A"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/MotionBlur/MotionEstimationUI.fxh",
+      "Bytes": 6930,
+      "SHA256": "F5F05BF2BB005ADDA9CF972A64601C4CDAB46B1B3C52D612FB4A6C823F0BBD5D"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/MotionBlur/MotionVectors.fxh",
+      "Bytes": 2147,
+      "SHA256": "AA7C306CDC77E59E2CDB8042B0AAC3BB2480B70AC04FA774EB3C08F12B10FF48"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/OtisFX/CinematicDOF.fx",
+      "Bytes": 78183,
+      "SHA256": "742F65B37C015CEB54CB8ABAF522055203885CA3838A0CAE0A13A25D30AF05D2"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/OtisFX/DepthHaze.fx",
+      "Bytes": 5173,
+      "SHA256": "17EA5B3164D0A4B2C1F2997D69CC348C4D207E8BAA4B7776E387D6812E8EBF3E"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/OtisFX/DisplayDepth.fx",
+      "Bytes": 21653,
+      "SHA256": "E2266C47C75DCC30030C8EC68CF62CF16F2AEBE1ECDECF0265D91CE65DBD7F32"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_00_Base_Effects.fxh",
+      "Bytes": 1450,
+      "SHA256": "E27CAFDF9D96A6C7194E3954D3E529F32D203E5E2150D895A920841936CD59C1"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_00_Blend_Modes.fxh",
+      "Bytes": 5899,
+      "SHA256": "ABE8AEE121BCD857D4B6A806888B83DDA88DB9AC73E8D78AF403E5933CB9FFE0"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_00_Color_Spaces.fxh",
+      "Bytes": 5995,
+      "SHA256": "DE57915BB9C3BB1AFDA523BC6E2F05F0173FA90A1084A5915D047D5D250803BB"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_00_Noise_Samplers.fxh",
+      "Bytes": 1625,
+      "SHA256": "5E91544A44E58D6A9F22434ACFEFD24F393A7E22CD902591267B0EF2B6B5FA4E"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_01_Color_Gamut.fx",
+      "Bytes": 9198,
+      "SHA256": "419A7950C0B25538F894B3DF9DEC4C911A60A6D5EA55E43B18B4E22EF5D1D2E4"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_02_Bloom.fx",
+      "Bytes": 31531,
+      "SHA256": "C774326ADECB7BFED5F38CDE805AA59DE36861B1F67073CE09BD224FDFEE0A10"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_03_Filmic_Adaptation.fx",
+      "Bytes": 6980,
+      "SHA256": "5999C0B61221959B1C6E94D9867F3818FECAA0584E85563E6552078237B5BAAD"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_03_Shadows_Midtones_Highlights.fx",
+      "Bytes": 15597,
+      "SHA256": "F5F9CFB21279C36B1BDED3C3FA62379C70FFF89B09ECB763DB3A7F0BEDD139FA"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_04_Color_Balance.fx",
+      "Bytes": 8548,
+      "SHA256": "79AF1590AD63D3B3CF0C1BC91E117D1D86501EB0E26D01D6428307276F903FE3"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_04_Color_Temperature.fx",
+      "Bytes": 3708,
+      "SHA256": "C24240294EC3C343865A274622EBBCDFDDA033C94F595F2B154C604354E4AC89"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_04_Contrast_Brightness_Saturation.fx",
+      "Bytes": 13987,
+      "SHA256": "4388C13A8C83027EC3E57BF176E042D76F8E576C72AE690D2856CF1ED6A55A75"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_05_Sharpening.fx",
+      "Bytes": 10904,
+      "SHA256": "0D01CF468AE64B76CFFC3DF7EEF156B939C8555CD7951301CF05A9B21FA2396F"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_06_Chromatic_Aberration.fx",
+      "Bytes": 11448,
+      "SHA256": "939AD585EC222C76E33E0563213731DAAFD707B575780C442C8D08E11911CB33"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_06_Film_Grain.fx",
+      "Bytes": 19736,
+      "SHA256": "CCD71252E6CD158BFB78CD4CD9AA437D093B2A23E01177DD531282871512B053"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/PD80/PD80_LUT_v2.fxh",
+      "Bytes": 5639,
+      "SHA256": "36FC86FB2037963105D3173A2C326C56EBC83058ACCF18DF0456D4303A1396FB"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_bloom.fx",
+      "Bytes": 15802,
+      "SHA256": "8973665F7DB55018BC1C0585BC1AA569C25C916E2012BE255835C200CB102D8E"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_common.fxh",
+      "Bytes": 7053,
+      "SHA256": "30CF03A1869E33E9B92F09F79AC9217C001472D014AB91EF3E87E0D41E3F55EC"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_deband.fx",
+      "Bytes": 3934,
+      "SHA256": "CD159A816BBCD78BD86D4A3A699817BD37C20DF3D25495A55F789325F69F3BAB"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_dof.fx",
+      "Bytes": 25663,
+      "SHA256": "460E52412B70B96BFE2ADF6AD058733B2504FA450CF2A3F2DB391611642DD7A1"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_lightroom.fx",
+      "Bytes": 31564,
+      "SHA256": "99A0D6FFADCA4AB8AF74415580A1810DC9D28031DDAC942936137EA2C114C53C"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_mxao.fx",
+      "Bytes": 26449,
+      "SHA256": "FDD84443706A92753AC255D9912CEB5F8E03A4BBA88DDFB06A85B5654A9590E1"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_sharp.fx",
+      "Bytes": 6389,
+      "SHA256": "71F4B879A88946BC667B2E69644DBBF518CF3EAAC7600DF00E89CCDA6A3C21DE"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/qUINT/qUINT_ssr.fx",
+      "Bytes": 15010,
+      "SHA256": "41ACCC9496ACD27D5A2AB9C040F7EF8E98EA546FDF097D9AEBCEFC5B15A3C877"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/ReShade.fxh",
+      "Bytes": 4250,
+      "SHA256": "6DABFBBAF968C3871905D2EA17F96572FF7B1CEC01310B5D0E5252B66B30174F"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/ReShadeUI.fxh",
+      "Bytes": 9930,
+      "SHA256": "78ADF672DF47460297EB9FE6DD238D2AAFA24510B52B84FEB1A745DFF70EB901"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/Standard/LUT.fx",
+      "Bytes": 2714,
+      "SHA256": "E3179C023A599D1EBE0C73FA00084A64D0BE66F4E5B43A45C1BB25C3C9DF0363"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/SweetFX/CAS.fx",
+      "Bytes": 6979,
+      "SHA256": "91B98E9D3335CB8F21159EF4B55AED43E2B5C56A1FADEDE54D348408E41B357A"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/SweetFX/SMAA.fx",
+      "Bytes": 9480,
+      "SHA256": "8FC7A50A5BE19BEDC75F30386DC1481547DBE292E6278D469330C2C62A3F64AB"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/SweetFX/SMAA.fxh",
+      "Bytes": 57679,
+      "SHA256": "EE18B0F376585338CDB477A0900757CEBAC86D3C476EF99955348B55818C8310"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Shaders/SweetFX/Tonemap.fx",
+      "Bytes": 2000,
+      "SHA256": "BBE2E7EB8D6F9FB4316BAD8C85B5BFD1D98F0903D2CD962FD5D4C0EBBDE3C5F3"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/bokehshapes/cutestar.png",
+      "Bytes": 108621,
+      "SHA256": "BC754B73614115DDD600E61931C1E949D6300D4260CCF9F29EA5C71FAA8C9223"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/bokehshapes/fringy_soft_chr_rb.png",
+      "Bytes": 67737,
+      "SHA256": "0BBB4128258348202248BDCB4D157FAEB727A5469368A0308B50BC570C4E63E5"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/bokehshapes/hex_fringy_soft.png",
+      "Bytes": 31668,
+      "SHA256": "60156FB14E8139B9EA1399431B28C4D8C33D487A4BA0CD2B6F96410027418290"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/bokehshapes/hex.png",
+      "Bytes": 12085,
+      "SHA256": "619FC48BA05C59A509652503F88890509076B1F9588741ECC62FA8E617C00CE2"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/bokehshapes/moyheart.png",
+      "Bytes": 227985,
+      "SHA256": "3BF9233D822B3C4E08017ED0E5A07A8B97AD0805BEDB9AA9494DA0B06E23173B"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/bokehshapes/square.png",
+      "Bytes": 80283,
+      "SHA256": "4DB68F41531322B98998D67C1AEC47DEE00338A65A8C82B80A8EA946340ED97E"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/monochrome_gaussnoise.png",
+      "Bytes": 666017,
+      "SHA256": "70F200A55BE9F83829B26A1420470C53C595C959BDFFF6E501DCDF433E4F6EBD"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/PD80/pd80_bluenoise_rgba.png",
+      "Bytes": 1049488,
+      "SHA256": "79AE20B533686C6C90031E4F63A3B73653A7D5FF12F4948CA9B448F6BA097C71"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/PD80/pd80_bluenoise.png",
+      "Bytes": 392823,
+      "SHA256": "DF6F9A6ED8EAAEAA5D082B00C01397205920E6D4B6C485808D1DB2DA7F083843"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/PD80/pd80_gaussnoise.png",
+      "Bytes": 666017,
+      "SHA256": "70F200A55BE9F83829B26A1420470C53C595C959BDFFF6E501DCDF433E4F6EBD"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/PD80/pd80_permtexture.png",
+      "Bytes": 151590,
+      "SHA256": "808D711D479DEBE10F231BA142E543DA517814BDE3654D31CEB1C68675EB8834"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/Standard/lut.png",
+      "Bytes": 273,
+      "SHA256": "C81D61B0C7CAA5CB8FF77B10183F2A00FFC5B4601EF328F7B9368E625FA9A214"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/SweetFX/AreaTex.png",
+      "Bytes": 30346,
+      "SHA256": "0044E6B420A8D98A9DC6A60BEDBD43F75CD15AC6052FDEDFB2F2F55D3077BEED"
+    },
+    {
+      "Path": "payload/reshade/reshade-shaders/Textures/SweetFX/SearchTex.png",
+      "Bytes": 126,
+      "SHA256": "55A97853AB64174245701ACCF315AB63D41776C9CB2AA14C675E653684FD96F3"
+    },
+    {
+      "Path": "payload/reshade/ReShade.ini",
+      "Bytes": 3085,
+      "SHA256": "FC7C56AA68B390DC625DA373F7861D3488B106852F004306C4A24AA7DEAE85DB"
+    },
+    {
+      "Path": "payload/reshade/TERA_Natural_Clarity.ini",
+      "Bytes": 9793,
+      "SHA256": "5F9AE17B62F562F1592A1BB0782C54166DA53140E6E69EC3B383E010A1D97824"
+    },
+    {
+      "Path": "payload/runtime/ReShade64.dll",
+      "Bytes": 5592064,
+      "SHA256": "0CEE63F9C9F13F3AC909C5B4903F4DBB4B719A7AB3B4F13B0DEAF83C814B94F7"
+    },
+    {
+      "Path": "README.md",
+      "Bytes": 6657,
+      "SHA256": "520ED3FD052B7CE19DCF5476BDB0D9A79CB4C58EC6A47918E31F545343073A22"
+    },
+    {
+      "Path": "SOURCES.md",
+      "Bytes": 618,
+      "SHA256": "0E41CEE876557350DA3832D7BAB10886E84CA5232518E0615C38A549124628E5"
+    }
+  ]
+}

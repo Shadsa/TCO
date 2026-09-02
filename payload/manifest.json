@@ -1,0 +1,17 @@
+{
+  "Package": "TCO executable payload integrity",
+  "Version": "1.0",
+  "FileCount": 2,
+  "Files": [
+    {
+      "Path": "payload/dxvk/d3d9.dll",
+      "Bytes": 4149262,
+      "SHA256": "2740233A94774FA64A1E07C6EAF94F67027A3C7594FF3B48F7A1C9801777E5A9"
+    },
+    {
+      "Path": "payload/runtime/ReShade64.dll",
+      "Bytes": 5592064,
+      "SHA256": "0CEE63F9C9F13F3AC909C5B4903F4DBB4B719A7AB3B4F13B0DEAF83C814B94F7"
+    }
+  ]
+}

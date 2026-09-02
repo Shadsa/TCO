@@ -1,78 +1,101 @@
-# TERA Complete Graphics and Classic+ Profile
+# TCO
 
-This package reproduces the tested TERA setup captured on 2026-08-30. It
-combines the stable UE3 engine profile, a D3D9 ReShade-to-DXVK pipeline, the
-current ReShade preset and Generic Depth selection, and sanitized TCC/Shinra
-settings.
+**TERA Classic+ Optimizer**
 
-## Install
+TCO improves TERA graphics and helps the game run more smoothly.
 
-Extract the package folder directly inside the TERA installation directory:
+## Before You Start
 
-```text
-TERA/
-  Binaries/
-  S1Game/
-  TERA-Complete-Graphics-Package-2026-08-30-final/
-    Install.cmd
-```
+- Close TERA and its launcher.
+- Know where your TERA folder is.
+- Start TCO.
 
-Close TERA, the launcher, Noctenium, TCC, and Shinra Meter. Run `Install.cmd`.
-The script requests administrator rights because it checks the system ReShade
-Vulkan-layer registry values. It finishes by locking the five managed TERA INI
-files read-only.
+## Quick Setup
 
-PowerShell equivalent:
+1. Click **Browse**.
+2. Select your main TERA folder.
+3. Choose an **Engine configuration**.
+4. Enable **PC Only** if you do not use a controller.
+5. Enable **Patch TCC and Shinra** only if you use them.
+6. Click **Apply complete pipeline**.
+7. Wait for **Completed successfully**.
 
-```powershell
-.\Install-TERA-Complete.ps1 -Action Apply
-```
+Your TERA folder is the folder that contains both **Binaries** and **S1Game**.
 
-## Installed configuration
-
-- ReShade 6.8 full add-on runtime loaded as `Binaries\d3d9.dll`.
-- DXVK D3D9 loaded by ReShade through `Binaries\d3d9_dxvk.dll`.
-- TERA FXAA disabled; SMAA is supplied by ReShade.
-- The exact captured `ReShade.ini`, `TERA_Natural_Clarity.ini`, and shader tree.
-- Generic Depth targets D24S8 at 3440x1440, exact-resolution matching, the
-  higher-draw-call candidate, and clear index 1.
-- Texture streaming pool 4096 MB, high view distance, shadows, ambient
-  occlusion, bloom, lens flare, anisotropic filtering, and stable frame pacing.
-- Character LOD 2 and the current enabled mouse-smoothing values are preserved.
-- Native TERA motion blur, depth of field, radial blur, and temporal AA remain
-  disabled. ReShade owns the optional depth-based blur effects.
-- Current preset techniques: SMAA, Deband, Tonemap, CAS, prod80 bloom and color
-  grading, DepthHaze, and CinematicDOF.
-- ReShade overlay: `Home`. Shinra paste: `Ctrl+Home`. Shinra alerts: muted.
-
-The files in `payload\engine-reference` are the exact live INI snapshots used
-to build this release. The installer deliberately applies the graphics profile
-by section and key instead of copying those complete snapshots, so it does not
-overwrite another player's resolution, account, or server-specific values.
-
-## Actions
+Example:
 
 ```text
-Apply               Engine + DXVK + ReShade + TCC + Shinra
-ApplyClassicPlus    TCC and Shinra profiles only
-ExportClassicPlus   Refresh the sanitized profile payload
-EnableReShade       Reapply the saved ReShade/DXVK configuration
-DisableReShade      Keep DXVK active without ReShade
-RestoreReShade      Restore the D3D9 state recorded before first use
-LockConfigs         Mark the five managed TERA INIs read-only
-UnlockConfigs       Remove the read-only attribute
-Status              Show engine, D3D9 pipeline, depth, and profile status
+S:\TERA
 ```
 
-The Classic+ payload removes account hashes, usernames, tokens, and absolute
-user paths. On install, the Shinra export directory is rebuilt under the
-current user's Documents folder.
+Do not select the **Binaries** folder itself.
 
-## Notes
+## Engine Choices
 
-The full add-on build is required for Generic Depth. ReShade may disable add-ons
-when its network-activity protection is triggered; this package does not bypass
-server or anti-cheat policy. Use it only where the server permits ReShade
-add-ons. `DisableReShade` is the quick diagnostic path, while `RestoreReShade`
-removes the package's ReShade files and restores the recorded starting D3D9
-state.
+### TCO Standard
+
+Best image quality. Recommended for most players.
+
+### TCO No-Dyn Light
+
+Almost the same image quality, but moving lights are disabled. Use this for better and more stable FPS.
+
+### PC Only
+
+Disables controller input. Enable it when you play only with keyboard and mouse.
+
+### Patch TCC and Shinra
+
+Applies the included TCC and Shinra setup. Enable it only when TCC and Shinra are already installed.
+
+## Main Buttons
+
+### Apply complete pipeline
+
+Applies your chosen game settings and activates ReShade and DXVK. It also patches TCC and Shinra when that option is enabled.
+
+### Scan current configuration
+
+Checks your current setup. It does not change the game.
+
+The scan shows if these parts are installed and active:
+
+- Engine settings
+- ReShade
+- DXVK
+- TCC
+- Shinra
+
+Click **Open report** to read the saved result.
+
+## Individual Controls
+
+### Engine settings
+
+- **Apply** uses the selected TCO engine choice.
+- **Restore** returns the game settings saved before the first TCO setup.
+
+### ReShade
+
+ReShade improves colors, sharpness, and screen effects.
+
+- **Activate** turns ReShade on.
+- **Deactivate** turns ReShade off.
+
+### DXVK
+
+DXVK can make the game smoother and improve FPS on many computers.
+
+- **Activate** turns DXVK on.
+- **Deactivate** turns DXVK off.
+
+## If Something Looks Wrong
+
+1. Close TERA.
+2. Open TCO.
+3. Click **Scan current configuration**.
+4. Deactivate ReShade and test the game.
+5. If the problem remains, deactivate DXVK and test again.
+6. Use **Restore** beside Engine settings if needed.
+
+Use **Open log** after an error to see more details.

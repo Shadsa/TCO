@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>TCO.Core</AssemblyName>
+    <RootNamespace>TcoInstaller</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\payload\manifest.json" LogicalName="Tco.Payload/manifest.json" />
+    <EmbeddedResource Include="..\..\payload\**\*"
+                      Exclude="..\..\payload\manifest.json"
+                      LogicalName="Tco.Payload/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

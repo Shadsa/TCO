@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AssemblyName>TCO.Installer</AssemblyName>
+    <AssemblyName Condition="'$(Configuration)' == 'Release'">TCO.Installer-win-x64</AssemblyName>
+    <RootNamespace>TcoInstaller</RootNamespace>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>embedded</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <PublishDir Condition="'$(PublishDir)' == ''">$(MSBuildThisFileDirectory)..\..\artifacts\release\</PublishDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="MarkView.Avalonia" />
+    <ProjectReference Include="..\..\src\TcoInstaller.Core\TcoInstaller.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\README.md" LogicalName="Tco.Content/README.md" />
+  </ItemGroup>
+
+  <!-- A release is deliberately distributable as one file; fail publishing if a package leaks beside it. -->
+  <Target Name="FinalizeSingleExecutable" AfterTargets="Publish" Condition="'$(PublishSingleFile)' == 'true'">
+    <ItemGroup>
+      <NativePublishSymbols Include="$(PublishDir)**\*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(NativePublishSymbols)" />
+    <ItemGroup>
+      <PublishedOutput Include="$(PublishDir)**\*" />
+    </ItemGroup>
+    <Error Condition="!Exists('$(PublishDir)$(TargetName).exe')"
+           Text="Single-file publish did not produce $(PublishDir)$(TargetName).exe." />
+    <Error Condition="'@(PublishedOutput->Count())' != '1'"
+           Text="Single-file release must contain exactly one file. Found: @(PublishedOutput, ', ')." />
+  </Target>
+
+  <!-- A Release build also refreshes the one-file distribution without recursively rebuilding. -->
+  <Target Name="PackageSingleExecutableAfterBuild"
+          AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Release' and '$(DesignTimeBuild)' != 'true' and '$(SkipTcoPostBuildPackage)' != 'true'">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\tools\Publish-TCO.ps1&quot; -NoRestore -NoBuild" />
+  </Target>
+
+</Project>
