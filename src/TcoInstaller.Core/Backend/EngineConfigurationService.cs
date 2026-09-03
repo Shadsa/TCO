@@ -10,12 +10,17 @@ namespace TcoInstaller.Backend;
 public sealed class EngineConfigurationService
 {
     public const string PresetFolder = "EngineConfigurationPResets";
+    private const string FrameRateFile = "S1Engine.ini";
+    private const string FrameRateSection = "Engine.Engine";
+    private const string FrameRateKey = "MaxSmoothedFrameRate";
 
     private readonly EngineBackupStore _backups = new();
     private readonly IReadOnlyDictionary<string, EngineConfiguration> _configurations;
+    private readonly IDisplayResolutionService _displays;
 
-    public EngineConfigurationService(PayloadStore payload)
+    public EngineConfigurationService(PayloadStore payload, IDisplayResolutionService? displays = null)
     {
+        _displays = displays ?? new DisplayResolutionService();
         var presets = payload.Files
             .Where(path => path.StartsWith(PresetFolder + "/", StringComparison.OrdinalIgnoreCase) &&
                            path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
@@ -55,7 +60,8 @@ public sealed class EngineConfigurationService
             ? profile
             : throw new InvalidDataException($"Unknown engine preset: {configurationId}");
 
-    public int GetCount(string? configurationId) => GetEntries(Resolve(configurationId)).Count();
+    public int GetCount(string? configurationId) =>
+        GetEntries(Resolve(configurationId)).Count(entry => !IsFrameRateCap(entry.File, entry.Section, entry.Key)) + 1;
 
     /// <summary>Captures the original INIs once, then updates only keys owned by the selected preset.</summary>
     public void Apply(TeraPaths paths, FileTransaction transaction, string? configurationId = null, bool pcOnly = false)
@@ -63,6 +69,7 @@ public sealed class EngineConfigurationService
         paths.Validate();
         _backups.SaveIfMissing(paths, transaction);
         var profile = Resolve(configurationId);
+        var refreshRate = _displays.GetPrimaryResolution().RefreshRateHz;
         var textureFingerprint = IniFile.GetTextureGroupFingerprint(paths.SystemSettings);
 
         foreach (var file in profile.Files)
@@ -73,6 +80,9 @@ public sealed class EngineConfigurationService
             foreach (var section in file.Value)
                 IniFile.SetValues(path, section.Key, section.Value);
         }
+
+        transaction.CaptureFile(paths.S1Engine);
+        IniFile.SetValue(paths.S1Engine, FrameRateSection, FrameRateKey, refreshRate.ToString());
 
         // This user preference intentionally stays outside presets so it can accompany either profile.
         transaction.CaptureFile(paths.S1Engine);
@@ -94,11 +104,12 @@ public sealed class EngineConfigurationService
     /// <summary>Returns the closest preset with live health, lock, and mismatch fields populated.</summary>
     public EngineConfiguration Inspect(TeraPaths paths)
     {
+        var refreshRate = _displays.GetPrimaryResolution().RefreshRateHz;
         var match = Configurations
-            .Select(profile => (Profile: profile, Mismatches: GetMismatches(paths, profile.Id)))
+            .Select(profile => (Profile: profile, Mismatches: GetMismatches(paths, profile, refreshRate)))
             .OrderBy(candidate => candidate.Mismatches.Count)
             .First();
-        var total = GetEntries(match.Profile).Count();
+        var total = GetManagedEntries(match.Profile, refreshRate).Count();
         var locks = paths.ConfigFiles.ToDictionary(
             path => Path.GetFileName(path) ?? throw new InvalidDataException($"Configuration path has no filename: {path}"),
             path => (File.GetAttributes(path) & FileAttributes.ReadOnly) != 0,
@@ -111,6 +122,8 @@ public sealed class EngineConfigurationService
             ChecksTotal = total,
             TexturePoolMb = IniFile.GetValue(paths.S1Engine, "TextureStreaming", "PoolSize") ?? string.Empty,
             Fxaa = IniFile.GetValue(paths.SystemSettings, "SystemSettings", "FXAA") ?? string.Empty,
+            FpsCap = IniFile.GetValue(paths.S1Engine, FrameRateSection, FrameRateKey) ?? string.Empty,
+            MonitorRefreshRateHz = refreshRate,
             PcOnly = IniFile.GetValue(paths.S1Engine, "WinDrv.WindowsClient", "AllowJoystickInput") == "0",
             ConfigsLocked = locks.Values.All(value => value),
             Mismatches = match.Mismatches,
@@ -120,8 +133,14 @@ public sealed class EngineConfigurationService
 
     public Dictionary<string, string> GetMismatches(TeraPaths paths, string? configurationId = null)
     {
+        var profile = Resolve(configurationId);
+        return GetMismatches(paths, profile, _displays.GetPrimaryResolution().RefreshRateHz);
+    }
+
+    private static Dictionary<string, string> GetMismatches(TeraPaths paths, EngineConfiguration profile, int refreshRate)
+    {
         var mismatches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in GetEntries(Resolve(configurationId)))
+        foreach (var entry in GetManagedEntries(profile, refreshRate))
         {
             var actual = IniFile.GetValue(paths.EngineFiles[entry.File], entry.Section, entry.Key) ?? "<missing>";
             if (!actual.Equals(entry.Value, StringComparison.OrdinalIgnoreCase))
@@ -135,6 +154,18 @@ public sealed class EngineConfigurationService
         from section in file.Value
         from setting in section.Value
         select (file.Key, section.Key, setting.Key, setting.Value);
+
+    private static IEnumerable<(string File, string Section, string Key, string Value)> GetManagedEntries(
+        EngineConfiguration profile,
+        int refreshRate) =>
+        GetEntries(profile)
+            .Where(entry => !IsFrameRateCap(entry.File, entry.Section, entry.Key))
+            .Append((FrameRateFile, FrameRateSection, FrameRateKey, refreshRate.ToString()));
+
+    private static bool IsFrameRateCap(string file, string section, string key) =>
+        file.Equals(FrameRateFile, StringComparison.OrdinalIgnoreCase) &&
+        section.Equals(FrameRateSection, StringComparison.OrdinalIgnoreCase) &&
+        key.Equals(FrameRateKey, StringComparison.OrdinalIgnoreCase);
 
     private static void Validate(EngineConfiguration profile)
     {

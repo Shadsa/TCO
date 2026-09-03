@@ -85,6 +85,10 @@
                               IsChecked="{Binding PcOnly, Mode=TwoWay}"
                               IsEnabled="{Binding CanEdit}"
                               ToolTip.Tip="Disable joystick input when engine settings are applied." />
+                    <CheckBox Content="No blur"
+                              IsChecked="{Binding NoBlur, Mode=TwoWay}"
+                              IsEnabled="{Binding CanEdit}"
+                              ToolTip.Tip="Disable ReShade distance atmosphere and blur effects during Apply or ReShade activation." />
                     <CheckBox Content="Patch TCC and Shinra during Apply"
                               IsChecked="{Binding IncludeClassicPlus, Mode=TwoWay}"
                               IsEnabled="{Binding CanEdit}" />

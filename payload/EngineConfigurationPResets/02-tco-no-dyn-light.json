@@ -10,7 +10,6 @@
         "AllowShadowVolumes": "True",
         "bSmoothFrameRate": "True",
         "MinSmoothedFrameRate": "30",
-        "MaxSmoothedFrameRate": "141",
         "TerrainMaterialMaxTextureCount": "64",
         "bUseTextureStreaming": "True"
       },

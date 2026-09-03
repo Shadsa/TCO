@@ -27,7 +27,7 @@ public sealed class InstallerRunner
                 File.AppendAllText(logPath, line, new UTF8Encoding(false));
         }
 
-        Log($"TCO native installer; Action={request.Action}; TeraRoot={request.TeraRoot}; IncludeClassicPlus={request.IncludeClassicPlus}");
+        Log($"TCO native installer; Action={request.Action}; TeraRoot={request.TeraRoot}; IncludeClassicPlus={request.IncludeClassicPlus}; NoBlur={request.NoBlur}");
         try
         {
             var snapshot = await _orchestrator.RunAsync(request, progress, Log, cancellationToken);

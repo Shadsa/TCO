@@ -27,6 +27,7 @@ public sealed record ReShadeConfiguration
     public bool ShadersInstalled { get; init; }
     public bool CinematicDofInstalled { get; init; }
     public bool CinematicDofEnabled { get; init; }
+    public bool NoBlur { get; init; }
     public bool RuntimeConfirmed { get; init; }
     public string RuntimeModule { get; init; } = string.Empty;
     public string RenderApi { get; init; } = string.Empty;

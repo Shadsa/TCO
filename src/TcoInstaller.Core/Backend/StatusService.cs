@@ -42,8 +42,10 @@ public sealed class StatusService(
         text.AppendLine($"Engine preset: {snapshot.Engine.Name} ({snapshot.Engine.ChecksPassed}/{snapshot.Engine.ChecksTotal} settings)");
         text.AppendLine($"Engine backup: {(snapshot.Engine.BackupAvailable ? "available" : "not captured")}");
         text.AppendLine($"PC Only: {(snapshot.Engine.PcOnly ? "enabled" : "disabled")}");
+        text.AppendLine($"FPS cap: {snapshot.Engine.FpsCap} (primary monitor: {snapshot.Engine.MonitorRefreshRateHz} Hz)");
         text.AppendLine($"Pipeline: {snapshot.ConfiguredPipeline}");
         text.AppendLine($"Depth: {snapshot.ReShade.DepthFormat} at {snapshot.ReShade.DepthResolution} (display {snapshot.ReShade.PrimaryDisplayResolution})");
+        text.AppendLine($"No blur: {(snapshot.ReShade.NoBlur ? "enabled" : "disabled")}");
         text.AppendLine($"ReShade runtime: {(snapshot.ReShade.RuntimeConfirmed ? "confirmed" : "not confirmed")}");
         text.AppendLine($"Config files: {(snapshot.Engine.ConfigsLocked ? "locked" : "unlocked")}");
         if (snapshot.Engine.Mismatches.Count > 0)
@@ -87,7 +89,9 @@ public sealed class StatusService(
         text.AppendLine($"- Matching settings: {snapshot.Engine.ChecksPassed}/{snapshot.Engine.ChecksTotal}");
         text.AppendLine($"- Texture pool: {snapshot.Engine.TexturePoolMb} MB");
         text.AppendLine($"- FXAA: {snapshot.Engine.Fxaa}");
+        text.AppendLine($"- FPS cap: {snapshot.Engine.FpsCap} (primary monitor: {snapshot.Engine.MonitorRefreshRateHz} Hz)");
         text.AppendLine($"- PC Only: {(snapshot.Engine.PcOnly ? "Enabled" : "Disabled")}");
+        text.AppendLine($"- No blur: {(snapshot.ReShade.NoBlur ? "Enabled" : "Disabled")}");
         text.AppendLine($"- Original backup: {Detected(snapshot.Engine.BackupAvailable)}");
         text.AppendLine($"- Managed INIs: {(snapshot.Engine.ConfigsLocked ? "locked" : "unlocked or mixed")}");
         if (snapshot.Engine.Mismatches.Count > 0)

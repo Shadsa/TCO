@@ -19,9 +19,9 @@ public sealed class InstallerOrchestrator
     public InstallerOrchestrator()
     {
         _payload = new PayloadStore();
-        _engine = new EngineConfigurationService(_payload);
-        _classicPlus = new ClassicPlusService(_payload);
         var displays = new DisplayResolutionService();
+        _engine = new EngineConfigurationService(_payload, displays);
+        _classicPlus = new ClassicPlusService(_payload);
         var registry = new VulkanLayerRegistry();
         _graphics = new GraphicsPipelineService(_payload, _engine, displays, registry);
         _status = new StatusService(_engine, new GraphicsStatusInspector(displays), _classicPlus);
@@ -108,8 +108,8 @@ public sealed class InstallerOrchestrator
             _engine.Apply(context.Paths, transaction, configuration.Id, context.Request.PcOnly);
             context.Report("engine", "completed", $"Applied {_engine.GetCount(configuration.Id)} engine settings from {configuration.Name}; PC Only is {(context.Request.PcOnly ? "enabled" : "disabled")}.");
             context.Report("graphics", "started", "Installing and validating DXVK and ReShade.");
-            await _graphics.EnablePipelineAsync(context.Paths, transaction, context.CancellationToken);
-            context.Report("graphics", "completed", "DXVK and ReShade installed.");
+            await _graphics.EnablePipelineAsync(context.Paths, transaction, context.CancellationToken, context.Request.NoBlur);
+            context.Report("graphics", "completed", $"DXVK and ReShade installed; No blur is {(context.Request.NoBlur ? "enabled" : "disabled")}.");
             if (context.Request.IncludeClassicPlus)
             {
                 context.Report("classicplus", "started", "Applying TCC and Shinra profiles.");
@@ -151,7 +151,7 @@ public sealed class InstallerOrchestrator
 
     private Task<InstallationSnapshot> EnableReShadeAsync(OperationContext context) =>
         ExecuteGraphicsMutationAsync(context, true, "Activating ReShade while preserving the current DXVK state.", "ReShade activated.",
-            transaction => _graphics.EnableReShadeAsync(context.Paths, transaction, context.CancellationToken));
+            transaction => _graphics.EnableReShadeAsync(context.Paths, transaction, context.CancellationToken, context.Request.NoBlur));
 
     private Task<InstallationSnapshot> DisableReShadeAsync(OperationContext context) =>
         ExecuteGraphicsMutationAsync(context, true, "Deactivating ReShade while preserving the current DXVK state.", "ReShade deactivated.",

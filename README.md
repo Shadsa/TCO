@@ -4,6 +4,8 @@
 
 TCO improves TERA graphics and helps the game run more smoothly.
 
+When engine settings are applied, TCO automatically limits the game FPS to the refresh rate of your main monitor.
+
 ## Before You Start
 
 - Close TERA and its launcher.
@@ -16,9 +18,10 @@ TCO improves TERA graphics and helps the game run more smoothly.
 2. Select your main TERA folder.
 3. Choose an **Engine configuration**.
 4. Enable **PC Only** if you do not use a controller.
-5. Enable **Patch TCC and Shinra** only if you use them.
-6. Click **Apply complete pipeline**.
-7. Wait for **Completed successfully**.
+5. Enable **No blur** if you do not want distance blur.
+6. Enable **Patch TCC and Shinra** only if you use them.
+7. Click **Apply complete pipeline**.
+8. Wait for **Completed successfully**.
 
 Your TERA folder is the folder that contains both **Binaries** and **S1Game**.
 
@@ -43,6 +46,10 @@ Almost the same image quality, but moving lights are disabled. Use this for bett
 ### PC Only
 
 Disables controller input. Enable it when you play only with keyboard and mouse.
+
+### No blur
+
+Disables the ReShade distance atmosphere and blur effects. Other ReShade colors and effects stay active.
 
 ### Patch TCC and Shinra
 

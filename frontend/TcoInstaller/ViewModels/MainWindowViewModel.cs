@@ -19,6 +19,7 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
     private EngineConfiguration _selectedEngineConfiguration = null!;
     private bool _includeClassicPlus;
     private bool _pcOnly;
+    private bool _noBlur;
     private bool _isRunning;
     private string _statusText = "Ready";
     private string _logText = string.Empty;
@@ -140,6 +141,12 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         set => SetField(ref _pcOnly, value);
     }
 
+    public bool NoBlur
+    {
+        get => _noBlur;
+        set => SetField(ref _noBlur, value);
+    }
+
     public bool HasReport => !string.IsNullOrWhiteSpace(LastReportPath) && File.Exists(LastReportPath);
 
     public InstallationSnapshot? Snapshot
@@ -149,6 +156,8 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             if (!SetField(ref _snapshot, value))
                 return;
+            if (value?.ReShade.PresetInstalled == true)
+                NoBlur = value.ReShade.NoBlur;
             OnPropertyChanged(nameof(HasSnapshot));
             OnPropertyChanged(nameof(PipelineSummary));
             OnPropertyChanged(nameof(EngineDetection));
@@ -200,13 +209,15 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         action == InstallerAction.Apply && IncludeClassicPlus,
         action == InstallerAction.Apply,
         SelectedEngineConfiguration.Id,
-        PcOnly);
+        PcOnly,
+        NoBlur);
 
     public void ApplyRequest(InstallerRequest request)
     {
         TeraRoot = request.TeraRoot;
         IncludeClassicPlus = request.IncludeClassicPlus;
         PcOnly = request.PcOnly;
+        NoBlur = request.NoBlur;
         SelectedEngineConfiguration = EngineConfigurations.FirstOrDefault(configuration =>
             configuration.Id.Equals(request.EngineConfigurationId, StringComparison.OrdinalIgnoreCase)) ?? SelectedEngineConfiguration;
     }

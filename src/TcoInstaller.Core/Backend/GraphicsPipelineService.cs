@@ -13,6 +13,17 @@ public sealed class GraphicsPipelineService
     private const string DxvkRuntime = "dxvk/d3d9.dll";
     private const string ReShadeConfigPayload = "reshade/ReShade.ini";
     private const string ReShadePresetPayload = "reshade/TERA_Natural_Clarity.ini";
+    private static readonly string[] DefaultAtmosphereTechniques =
+    [
+        "DepthHaze@DepthHaze.fx",
+        "CinematicDOF@CinematicDOF.fx"
+    ];
+    private static readonly HashSet<string> BlurTechniques = new(
+    [
+        .. DefaultAtmosphereTechniques,
+        "ADOF@qUINT_dof.fx",
+        "LinearMotionBlur@LinearMotionBlur.fx"
+    ], StringComparer.OrdinalIgnoreCase);
 
     private readonly PayloadStore payload;
     private readonly EngineConfigurationService engineConfiguration;
@@ -44,17 +55,25 @@ public sealed class GraphicsPipelineService
         _ = displays.GetPrimaryResolution();
     }
 
-    public Task EnablePipelineAsync(TeraPaths paths, FileTransaction transaction, CancellationToken cancellationToken) =>
-        EnableReShadeCoreAsync(paths, transaction, true, cancellationToken);
+    public Task EnablePipelineAsync(
+        TeraPaths paths,
+        FileTransaction transaction,
+        CancellationToken cancellationToken,
+        bool noBlur = false) =>
+        EnableReShadeCoreAsync(paths, transaction, true, noBlur, cancellationToken);
 
-    public async Task EnableReShadeAsync(TeraPaths paths, FileTransaction transaction, CancellationToken cancellationToken)
+    public async Task EnableReShadeAsync(
+        TeraPaths paths,
+        FileTransaction transaction,
+        CancellationToken cancellationToken,
+        bool noBlur = false)
     {
         var files = new GraphicsPipelinePaths(paths);
         var activeKind = GetDllKind(files.ActiveD3D9);
         var keepDxvk = activeKind == "DXVK" ||
             activeKind == "ReShade" && GetDllKind(files.ProxyDxvk) == "DXVK" &&
             IniFile.GetValue(files.ReShadeConfig, "PROXY", "EnableProxyLibrary") == "1";
-        await EnableReShadeCoreAsync(paths, transaction, keepDxvk, cancellationToken);
+        await EnableReShadeCoreAsync(paths, transaction, keepDxvk, noBlur, cancellationToken);
     }
 
     public void DisableReShade(TeraPaths paths, FileTransaction transaction)
@@ -153,6 +172,7 @@ public sealed class GraphicsPipelineService
         TeraPaths paths,
         FileTransaction transaction,
         bool enableDxvk,
+        bool noBlur,
         CancellationToken cancellationToken)
     {
         await ValidatePayloadAsync(cancellationToken);
@@ -180,6 +200,7 @@ public sealed class GraphicsPipelineService
             transaction,
             overwriteExisting: false,
             cancellationToken: cancellationToken);
+        ConfigureBlurEffects(files.ReShadePreset, noBlur, transaction);
 
         transaction.CaptureFile(files.ReShadeConfig);
         IniFile.SetValue(files.ReShadeConfig, "PROXY", "EnableProxyLibrary", enableDxvk ? "1" : "0");
@@ -218,6 +239,18 @@ public sealed class GraphicsPipelineService
 
         if (GetDllKind(files.ProxyDxvk) != "DXVK")
             throw new InvalidDataException("The DXVK proxy DLL is missing or invalid.");
+    }
+
+    private static void ConfigureBlurEffects(string presetPath, bool noBlur, FileTransaction transaction)
+    {
+        var configured = IniFile.GetPreambleValue(presetPath, "Techniques") ?? string.Empty;
+        var techniques = configured.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        techniques.RemoveAll(technique => BlurTechniques.Contains(technique));
+        if (!noBlur)
+            techniques.AddRange(DefaultAtmosphereTechniques);
+
+        transaction.CaptureFile(presetPath);
+        IniFile.SetPreambleValue(presetPath, "Techniques", string.Join(',', techniques.Distinct(StringComparer.OrdinalIgnoreCase)));
     }
 
     private void RestoreOriginalD3D9(GraphicsPipelinePaths files, DxvkConfiguration state, FileTransaction transaction)

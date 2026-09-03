@@ -80,6 +80,12 @@ static Task TestIniAsync()
     Assert(IniFile.GetValue(path, "Two", "Other") == "yes", "Unrelated INI section changed.");
     Assert(IniFile.GetValue(path, "Three", "Added") == "42", "Missing INI section was not added.");
 
+    File.WriteAllText(path, "Techniques=Color,Blur\nSorting=Color,Blur\n\n[One]\nValue=old\n");
+    IniFile.SetPreambleValue(path, "Techniques", "Color");
+    Assert(IniFile.GetPreambleValue(path, "Techniques") == "Color", "ReShade preamble value was not replaced.");
+    Assert(IniFile.GetPreambleValue(path, "Sorting") == "Color,Blur", "Unrelated ReShade preamble value changed.");
+    Assert(IniFile.GetValue(path, "One", "Value") == "old", "ReShade section content changed.");
+
     File.WriteAllText(path, "[One]\nValue=a\nValue=b\n");
     AssertThrows<InvalidDataException>(() => IniFile.SetValue(path, "One", "Value", "c"));
     return Task.CompletedTask;
@@ -132,7 +138,7 @@ static Task TestEngineConfigurationAsync()
     var paths = CreateTeraFixture(fixture.Path);
     var originals = paths.ConfigFiles.ToDictionary(path => path, File.ReadAllText);
     var payload = new PayloadStore();
-    var engine = new EngineConfigurationService(payload);
+    var engine = new EngineConfigurationService(payload, new FixtureDisplayResolution());
     using (var transaction = new FileTransaction())
     {
         engine.Apply(paths, transaction);
@@ -150,7 +156,7 @@ static Task TestEngineConfigurationsAndRestoreAsync()
     using var fixture = new TemporaryDirectory();
     var paths = CreateTeraFixture(fixture.Path);
     var originals = paths.ConfigFiles.ToDictionary(path => path, File.ReadAllText);
-    var engine = new EngineConfigurationService(new PayloadStore());
+    var engine = new EngineConfigurationService(new PayloadStore(), new FixtureDisplayResolution());
     Assert(engine.Configurations.Select(profile => profile.Id).SequenceEqual(
         new[] { "tco-standard", "tco-no-dyn-light" }), "Engine configuration catalog is incomplete.");
 
@@ -161,6 +167,8 @@ static Task TestEngineConfigurationsAndRestoreAsync()
     }
     Assert(engine.GetMismatches(paths, "tco-no-dyn-light").Count == 0,
         "The selected customizable engine configuration was not applied faithfully.");
+    Assert(IniFile.GetValue(paths.S1Engine, "Engine.Engine", "MaxSmoothedFrameRate") == "144",
+        "The engine FPS cap does not match the primary monitor refresh rate.");
     Assert(IniFile.GetValue(paths.S1Engine, "WinDrv.WindowsClient", "AllowJoystickInput") == "0", "PC Only was not enabled.");
     Assert(engine.HasValidBackup(paths), "Original engine backup was not captured.");
     Assert(engine.Inspect(paths) is { Id: "tco-no-dyn-light", PcOnly: true }, "Applied engine configuration or PC Only state was not detected.");
@@ -207,9 +215,9 @@ static async Task TestGraphicsTransitionsAsync()
     using var fixture = new TemporaryDirectory();
     var paths = CreateTeraFixture(fixture.Path);
     var payload = new PayloadStore();
-    var engine = new EngineConfigurationService(payload);
-    var registry = new FixtureVulkanRegistry();
     var displays = new FixtureDisplayResolution();
+    var engine = new EngineConfigurationService(payload, displays);
+    var registry = new FixtureVulkanRegistry();
     var graphics = new GraphicsPipelineService(payload, engine, displays, registry);
     var status = new GraphicsStatusInspector(displays);
 
@@ -231,7 +239,7 @@ static async Task TestGraphicsTransitionsAsync()
     File.WriteAllText(customShader, "// user-customized shader");
     using (var transaction = new FileTransaction())
     {
-        await graphics.EnablePipelineAsync(paths, transaction, CancellationToken.None);
+        await graphics.EnablePipelineAsync(paths, transaction, CancellationToken.None, noBlur: true);
         transaction.Commit();
     }
     Assert(File.ReadAllText(Path.Combine(paths.Binaries, "ReShade.ini")).Contains(customReShadeSetting, StringComparison.Ordinal),
@@ -240,6 +248,24 @@ static async Task TestGraphicsTransitionsAsync()
         "Reapplying ReShade overwrote the user preset.");
     Assert(File.ReadAllText(customShader) == "// user-customized shader",
         "Reapplying ReShade overwrote a user-customized shader.");
+    var noBlurTechniques = IniFile.GetPreambleValue(Path.Combine(paths.Binaries, "TERA_Natural_Clarity.ini"), "Techniques") ?? string.Empty;
+    Assert(!noBlurTechniques.Contains("DepthHaze@DepthHaze.fx", StringComparison.OrdinalIgnoreCase) &&
+           !noBlurTechniques.Contains("CinematicDOF@CinematicDOF.fx", StringComparison.OrdinalIgnoreCase),
+        "No blur did not disable the distance atmosphere and blur effects.");
+    Assert(noBlurTechniques.Contains("SMAA@SMAA.fx", StringComparison.OrdinalIgnoreCase),
+        "No blur disabled an unrelated ReShade effect.");
+    Assert(status.Inspect(paths).ReShade.NoBlur, "No blur was not detected after it was applied.");
+
+    using (var transaction = new FileTransaction())
+    {
+        await graphics.EnablePipelineAsync(paths, transaction, CancellationToken.None, noBlur: false);
+        transaction.Commit();
+    }
+    var blurTechniques = IniFile.GetPreambleValue(Path.Combine(paths.Binaries, "TERA_Natural_Clarity.ini"), "Techniques") ?? string.Empty;
+    Assert(blurTechniques.Contains("DepthHaze@DepthHaze.fx", StringComparison.OrdinalIgnoreCase) &&
+           blurTechniques.Contains("CinematicDOF@CinematicDOF.fx", StringComparison.OrdinalIgnoreCase),
+        "Clearing No blur did not restore the default atmosphere and blur effects.");
+    Assert(!status.Inspect(paths).ReShade.NoBlur, "Restored blur effects were not detected.");
     var reshadeState = JsonSerializer.Deserialize<ReShadeConfiguration>(File.ReadAllText(reshadeStatePath))!;
     var dxvkState = JsonSerializer.Deserialize<DxvkConfiguration>(File.ReadAllText(dxvkStatePath))!;
     File.WriteAllText(Path.Combine(paths.Tools, "tera-reshade-proxy-state.json"), JsonSerializer.Serialize(new
@@ -302,7 +328,7 @@ static async Task TestLegacyGraphicsStateMigrationAsync()
     var paths = CreateTeraFixture(selectedRoot);
     Assert(paths.Root == Path.TrimEndingDirectorySeparator(selectedRoot), "TERA root retained a trailing separator.");
     var payload = new PayloadStore();
-    var engine = new EngineConfigurationService(payload);
+    var engine = new EngineConfigurationService(payload, new FixtureDisplayResolution());
     var registry = new FixtureVulkanRegistry();
     var graphics = new GraphicsPipelineService(payload, engine, new FixtureDisplayResolution(), registry);
     Directory.CreateDirectory(paths.Tools);
@@ -446,7 +472,7 @@ sealed class FixtureHttpHandler(string releaseJson, byte[] executable) : HttpMes
 
 sealed class FixtureDisplayResolution : IDisplayResolutionService
 {
-    public DisplayResolution GetPrimaryResolution() => new(1920, 1080);
+    public DisplayResolution GetPrimaryResolution() => new(1920, 1080, 144);
 }
 
 sealed class FixtureVulkanRegistry : IVulkanLayerRegistry
