@@ -1,5 +1,6 @@
 using System.Text;
 using TcoInstaller.Contracts;
+using TcoInstaller.Models;
 
 namespace TcoInstaller.Backend;
 
@@ -12,10 +13,10 @@ public sealed class StatusService(
     GraphicsStatusInspector graphics,
     ClassicPlusService classicPlus)
 {
-    public InstallationSnapshot Inspect(TeraPaths paths)
+    public InstallationSnapshot Inspect(TeraPaths paths, EngineConfiguration? customEngineConfiguration = null)
     {
         paths.Validate();
-        var engineConfiguration = engine.Inspect(paths);
+        var engineConfiguration = engine.Inspect(paths, customEngineConfiguration);
         var (reshade, dxvk) = graphics.Inspect(paths);
         var classicPlusConfiguration = classicPlus.Inspect();
         var pipeline = reshade.Active && dxvk.Active
@@ -110,7 +111,8 @@ public sealed class StatusService(
         text.AppendLine($"- Active D3D9 module: {snapshot.ReShade.ActiveD3D9}");
         text.AppendLine($"- Runtime confirmed by log: {YesNo(snapshot.ReShade.RuntimeConfirmed)}");
         text.AppendLine($"- Runtime module: {snapshot.ReShade.RuntimeModule}");
-        text.AppendLine($"- Overlay key: {snapshot.ReShade.HomeKey}");
+        text.AppendLine($"- Overlay shortcut: {snapshot.ReShade.OverlayShortcut}");
+        text.AppendLine($"- Enabled effects: {string.Join(", ", snapshot.ReShade.EnabledTechniques)}");
         text.AppendLine($"- Generic Depth: {snapshot.ReShade.DepthFormat} at {snapshot.ReShade.DepthResolution}");
         text.AppendLine($"- Primary display: {snapshot.ReShade.PrimaryDisplayResolution}");
         text.AppendLine($"- Preset: {Detected(snapshot.ReShade.PresetInstalled)}");

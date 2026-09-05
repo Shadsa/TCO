@@ -55,20 +55,65 @@ public sealed class EngineConfigurationService
     public string DefaultConfigurationId { get; }
     public IReadOnlyList<EngineConfiguration> Configurations { get; }
 
-    public EngineConfiguration Resolve(string? configurationId) =>
-        _configurations.TryGetValue(configurationId ?? DefaultConfigurationId, out var profile)
+    public EngineConfiguration Resolve(string? configurationId, string? customConfigurationPath = null)
+    {
+        if (!string.IsNullOrWhiteSpace(customConfigurationPath))
+            return LoadCustom(customConfigurationPath);
+
+        return _configurations.TryGetValue(configurationId ?? DefaultConfigurationId, out var profile)
             ? profile
             : throw new InvalidDataException($"Unknown engine preset: {configurationId}");
+    }
+
+    /// <summary>Loads a user-selected JSON profile and applies the same safety checks as embedded profiles.</summary>
+    public EngineConfiguration LoadCustom(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        if (!File.Exists(fullPath))
+            throw new FileNotFoundException("The custom engine profile does not exist.", fullPath);
+        if (!Path.GetExtension(fullPath).Equals(".json", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("A custom engine profile must be a JSON file.");
+        if (new FileInfo(fullPath).Length > 2 * 1024 * 1024)
+            throw new InvalidDataException("The custom engine profile is unexpectedly large.");
+
+        EngineConfiguration profile;
+        try
+        {
+            profile = JsonSerializer.Deserialize<EngineConfiguration>(File.ReadAllText(fullPath), JsonOptions)
+                ?? throw new InvalidDataException("The custom engine profile is empty.");
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException("The custom engine profile is not valid JSON.", exception);
+        }
+
+        Validate(profile);
+        return profile with { IsDefault = false };
+    }
 
     public int GetCount(string? configurationId) =>
         GetEntries(Resolve(configurationId)).Count(entry => !IsFrameRateCap(entry.File, entry.Section, entry.Key)) + 1;
 
+    public int GetCount(EngineConfiguration profile) =>
+        GetEntries(profile).Count(entry => !IsFrameRateCap(entry.File, entry.Section, entry.Key)) + 1;
+
+    public string GetManagedFxaa(EngineConfiguration profile) =>
+        GetEntries(profile)
+            .Where(entry => entry.File.Equals("S1SystemSettings.ini", StringComparison.OrdinalIgnoreCase) &&
+                            entry.Section.Equals("SystemSettings", StringComparison.OrdinalIgnoreCase) &&
+                            entry.Key.Equals("FXAA", StringComparison.OrdinalIgnoreCase))
+            .Select(entry => entry.Value)
+            .SingleOrDefault() ?? ManagedFxaa;
+
     /// <summary>Captures the original INIs once, then updates only keys owned by the selected preset.</summary>
     public void Apply(TeraPaths paths, FileTransaction transaction, string? configurationId = null, bool pcOnly = false)
+        => Apply(paths, transaction, Resolve(configurationId), pcOnly);
+
+    public void Apply(TeraPaths paths, FileTransaction transaction, EngineConfiguration profile, bool pcOnly = false)
     {
         paths.Validate();
+        Validate(profile);
         _backups.SaveIfMissing(paths, transaction);
-        var profile = Resolve(configurationId);
         var refreshRate = _displays.GetPrimaryResolution().RefreshRateHz;
         var textureFingerprint = IniFile.GetTextureGroupFingerprint(paths.SystemSettings);
 
@@ -102,10 +147,15 @@ public sealed class EngineConfigurationService
     public bool HasValidBackup(TeraPaths paths) => _backups.IsValid(paths);
 
     /// <summary>Returns the closest preset with live health, lock, and mismatch fields populated.</summary>
-    public EngineConfiguration Inspect(TeraPaths paths)
+    public EngineConfiguration Inspect(TeraPaths paths, EngineConfiguration? customProfile = null)
     {
         var refreshRate = _displays.GetPrimaryResolution().RefreshRateHz;
-        var match = Configurations
+        if (customProfile is not null)
+            Validate(customProfile);
+        IEnumerable<EngineConfiguration> candidates = customProfile is null
+            ? Configurations
+            : [customProfile, .. Configurations];
+        var match = candidates
             .Select(profile => (Profile: profile, Mismatches: GetMismatches(paths, profile, refreshRate)))
             .OrderBy(candidate => candidate.Mismatches.Count)
             .First();

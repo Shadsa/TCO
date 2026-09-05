@@ -17,7 +17,8 @@ public sealed record ReShadeConfiguration
     public string ActiveD3D9 { get; init; } = string.Empty;
     public bool ProxyEnabled { get; init; }
     public string ProxyLibrary { get; init; } = string.Empty;
-    public string HomeKey { get; init; } = string.Empty;
+    public string OverlayShortcut { get; init; } = string.Empty;
+    public IReadOnlyList<string> EnabledTechniques { get; init; } = [];
     public string DepthFormat { get; init; } = string.Empty;
     public string DepthResolution { get; init; } = string.Empty;
     public string PrimaryDisplayResolution { get; init; } = string.Empty;

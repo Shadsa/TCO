@@ -15,12 +15,12 @@ public sealed class GraphicsPipelineService
     private const string ReShadePresetPayload = "reshade/TERA_Natural_Clarity.ini";
     private static readonly string[] DefaultAtmosphereTechniques =
     [
-        "DepthHaze@DepthHaze.fx",
-        "CinematicDOF@CinematicDOF.fx"
+        "DepthHaze@DepthHaze.fx"
     ];
     private static readonly HashSet<string> BlurTechniques = new(
     [
         .. DefaultAtmosphereTechniques,
+        "CinematicDOF@CinematicDOF.fx",
         "ADOF@qUINT_dof.fx",
         "LinearMotionBlur@LinearMotionBlur.fx"
     ], StringComparer.OrdinalIgnoreCase);
@@ -59,21 +59,27 @@ public sealed class GraphicsPipelineService
         TeraPaths paths,
         FileTransaction transaction,
         CancellationToken cancellationToken,
-        bool noBlur = false) =>
-        EnableReShadeCoreAsync(paths, transaction, true, noBlur, cancellationToken);
+        bool noBlur = false,
+        IReadOnlyDictionary<string, bool>? configuredTechniques = null,
+        string? overlayShortcut = null,
+        string? fxaa = null) =>
+        EnableReShadeCoreAsync(paths, transaction, true, noBlur, configuredTechniques, overlayShortcut, fxaa, cancellationToken);
 
     public async Task EnableReShadeAsync(
         TeraPaths paths,
         FileTransaction transaction,
         CancellationToken cancellationToken,
-        bool noBlur = false)
+        bool noBlur = false,
+        IReadOnlyDictionary<string, bool>? configuredTechniques = null,
+        string? overlayShortcut = null,
+        string? fxaa = null)
     {
         var files = new GraphicsPipelinePaths(paths);
         var activeKind = GetDllKind(files.ActiveD3D9);
         var keepDxvk = activeKind == "DXVK" ||
             activeKind == "ReShade" && GetDllKind(files.ProxyDxvk) == "DXVK" &&
             IniFile.GetValue(files.ReShadeConfig, "PROXY", "EnableProxyLibrary") == "1";
-        await EnableReShadeCoreAsync(paths, transaction, keepDxvk, noBlur, cancellationToken);
+        await EnableReShadeCoreAsync(paths, transaction, keepDxvk, noBlur, configuredTechniques, overlayShortcut, fxaa, cancellationToken);
     }
 
     public void DisableReShade(TeraPaths paths, FileTransaction transaction)
@@ -173,6 +179,9 @@ public sealed class GraphicsPipelineService
         FileTransaction transaction,
         bool enableDxvk,
         bool noBlur,
+        IReadOnlyDictionary<string, bool>? configuredTechniques,
+        string? overlayShortcut,
+        string? fxaa,
         CancellationToken cancellationToken)
     {
         await ValidatePayloadAsync(cancellationToken);
@@ -200,23 +209,26 @@ public sealed class GraphicsPipelineService
             transaction,
             overwriteExisting: false,
             cancellationToken: cancellationToken);
-        ConfigureBlurEffects(files.ReShadePreset, noBlur, transaction);
+        ConfigureEffects(files.ReShadePreset, configuredTechniques, noBlur, transaction);
 
         transaction.CaptureFile(files.ReShadeConfig);
+        if (!string.IsNullOrWhiteSpace(overlayShortcut))
+            IniFile.SetValue(files.ReShadeConfig, "INPUT", "KeyOverlay", ValidateOverlayShortcut(overlayShortcut));
         IniFile.SetValue(files.ReShadeConfig, "PROXY", "EnableProxyLibrary", enableDxvk ? "1" : "0");
         IniFile.SetValue(files.ReShadeConfig, "PROXY", "ProxyLibrary", @".\d3d9_dxvk.dll");
         var resolution = displays.GetPrimaryResolution();
         IniFile.SetValue(files.ReShadeConfig, "DEPTH", "FilterResolutionWidth", resolution.Width.ToString());
         IniFile.SetValue(files.ReShadeConfig, "DEPTH", "FilterResolutionHeight", resolution.Height.ToString());
         transaction.CaptureFile(paths.SystemSettings);
-        IniFile.SetValue(paths.SystemSettings, "SystemSettings", "FXAA", engineConfiguration.ManagedFxaa);
+        var expectedFxaa = fxaa ?? engineConfiguration.ManagedFxaa;
+        IniFile.SetValue(paths.SystemSettings, "SystemSettings", "FXAA", expectedFxaa);
         var previous64 = registry.Get64();
         var previous32 = registry.Get32();
         try
         {
             SetRegistryLayers(1, 1);
             DeleteFile(files.ReShadeLog, transaction);
-            AssertReShadeEnabled(paths, state.Dxvk, enableDxvk);
+            AssertReShadeEnabled(paths, state.Dxvk, enableDxvk, overlayShortcut, expectedFxaa);
         }
         catch
         {
@@ -241,16 +253,52 @@ public sealed class GraphicsPipelineService
             throw new InvalidDataException("The DXVK proxy DLL is missing or invalid.");
     }
 
-    private static void ConfigureBlurEffects(string presetPath, bool noBlur, FileTransaction transaction)
+    private static void ConfigureEffects(
+        string presetPath,
+        IReadOnlyDictionary<string, bool>? configuredTechniques,
+        bool noBlur,
+        FileTransaction transaction)
     {
         var configured = IniFile.GetPreambleValue(presetPath, "Techniques") ?? string.Empty;
         var techniques = configured.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-        techniques.RemoveAll(technique => BlurTechniques.Contains(technique));
-        if (!noBlur)
-            techniques.AddRange(DefaultAtmosphereTechniques);
+        if (configuredTechniques is not null)
+        {
+            var availableTechniques = (IniFile.GetPreambleValue(presetPath, "TechniqueSorting") ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var available = availableTechniques.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var requested = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (var technique in configuredTechniques)
+                requested[technique.Key] = technique.Value;
+            var managed = requested.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var unsupported = managed.Where(technique => !available.Contains(technique)).ToArray();
+            if (unsupported.Length > 0)
+                throw new InvalidDataException("Unsupported ReShade technique: " + string.Join(", ", unsupported));
+
+            techniques.RemoveAll(technique => managed.Contains(technique));
+            techniques.AddRange(availableTechniques.Where(technique =>
+                requested.TryGetValue(technique, out var enabled) && enabled));
+            if (noBlur)
+                techniques.RemoveAll(technique => BlurTechniques.Contains(technique));
+        }
+        else
+        {
+            techniques.RemoveAll(technique => BlurTechniques.Contains(technique));
+            if (!noBlur)
+                techniques.AddRange(DefaultAtmosphereTechniques);
+        }
 
         transaction.CaptureFile(presetPath);
         IniFile.SetPreambleValue(presetPath, "Techniques", string.Join(',', techniques.Distinct(StringComparer.OrdinalIgnoreCase)));
+    }
+
+    private static string ValidateOverlayShortcut(string shortcut)
+    {
+        var values = shortcut.Split(',', StringSplitOptions.TrimEntries);
+        if (values.Length != 4 ||
+            !int.TryParse(values[0], out var key) || key is < 1 or > 255 ||
+            values.Skip(1).Any(value => value is not "0" and not "1"))
+            throw new InvalidDataException("The ReShade overlay shortcut is invalid.");
+        return string.Join(',', values);
     }
 
     private void RestoreOriginalD3D9(GraphicsPipelinePaths files, DxvkConfiguration state, FileTransaction transaction)
@@ -280,7 +328,12 @@ public sealed class GraphicsPipelineService
         CopyFile(state.OriginalD3D9Backup, files.ActiveD3D9, transaction);
     }
 
-    private void AssertReShadeEnabled(TeraPaths paths, DxvkConfiguration state, bool expectDxvk)
+    private void AssertReShadeEnabled(
+        TeraPaths paths,
+        DxvkConfiguration state,
+        bool expectDxvk,
+        string? overlayShortcut,
+        string expectedFxaa)
     {
         var files = new GraphicsPipelinePaths(paths);
         var issues = new List<string>();
@@ -301,10 +354,13 @@ public sealed class GraphicsPipelineService
         if (IniFile.GetValue(files.ReShadeConfig, "DEPTH", "FilterResolutionWidth") != resolution.Width.ToString() ||
             IniFile.GetValue(files.ReShadeConfig, "DEPTH", "FilterResolutionHeight") != resolution.Height.ToString())
             issues.Add("Generic Depth resolution does not match the primary display.");
-        if (!string.Equals(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "FXAA"), engineConfiguration.ManagedFxaa, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(IniFile.GetValue(paths.SystemSettings, "SystemSettings", "FXAA"), expectedFxaa, StringComparison.OrdinalIgnoreCase))
             issues.Add("TERA FXAA does not match the engine configuration.");
         if (!File.Exists(files.ReShadeConfig) || !File.Exists(files.ReShadePreset) || !Directory.Exists(files.ReShadeShaders))
             issues.Add("One or more ReShade artifacts are missing.");
+        if (!string.IsNullOrWhiteSpace(overlayShortcut) &&
+            !string.Equals(IniFile.GetValue(files.ReShadeConfig, "INPUT", "KeyOverlay"), ValidateOverlayShortcut(overlayShortcut), StringComparison.Ordinal))
+            issues.Add("ReShade overlay shortcut does not match the selected configuration.");
         if (registry.Get64() is int layer64 && layer64 != 1) issues.Add("The global ReShade Vulkan 64-bit layer was not disabled.");
         if (registry.Get32() is int layer32 && layer32 != 1) issues.Add("The global ReShade Vulkan 32-bit layer was not disabled.");
         if (issues.Count > 0)

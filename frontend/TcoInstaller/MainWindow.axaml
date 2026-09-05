@@ -71,29 +71,9 @@
                           IsEnabled="{Binding CanEdit}" />
                 </Grid>
 
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="16">
-                  <StackPanel Spacing="6">
-                    <TextBlock Text="Engine configuration" Foreground="#AAB3C4" />
-                    <ComboBox ItemsSource="{Binding EngineConfigurations}"
-                              SelectedItem="{Binding SelectedEngineConfiguration, Mode=TwoWay}"
-                              IsEnabled="{Binding CanEdit}" />
-                    <TextBlock Text="{Binding SelectedEngineConfiguration.Description}"
-                               Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Spacing="12" VerticalAlignment="Center">
-                    <CheckBox Content="PC Only"
-                              IsChecked="{Binding PcOnly, Mode=TwoWay}"
-                              IsEnabled="{Binding CanEdit}"
-                              ToolTip.Tip="Disable joystick input when engine settings are applied." />
-                    <CheckBox Content="No blur"
-                              IsChecked="{Binding NoBlur, Mode=TwoWay}"
-                              IsEnabled="{Binding CanEdit}"
-                              ToolTip.Tip="Disable ReShade distance atmosphere and blur effects during Apply or ReShade activation." />
-                    <CheckBox Content="Patch TCC and Shinra during Apply"
-                              IsChecked="{Binding IncludeClassicPlus, Mode=TwoWay}"
-                              IsEnabled="{Binding CanEdit}" />
-                  </StackPanel>
-                </Grid>
+                <CheckBox Content="Patch TCC and Shinra during Apply"
+                          IsChecked="{Binding IncludeClassicPlus, Mode=TwoWay}"
+                          IsEnabled="{Binding CanEdit}" />
 
                 <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
                   <Button Classes="primary action" Content="Apply complete pipeline" Tag="Apply"
@@ -200,6 +180,106 @@
               </Grid>
             </Border>
           </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+
+      <TabItem Header="Configuration">
+        <TabItem.Resources>
+          <DataTemplate x:Key="ReShadeEffectTemplate" x:DataType="models:ReShadeEffectOption">
+            <StackPanel Margin="0,4" Spacing="2">
+              <CheckBox Content="{Binding Name}" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                        IsEnabled="{Binding IsAvailable}" />
+              <TextBlock Text="{Binding Description}" Margin="27,0,0,0" Foreground="#778197"
+                         FontSize="11" TextWrapping="Wrap" />
+            </StackPanel>
+          </DataTemplate>
+        </TabItem.Resources>
+        <ScrollViewer>
+          <Grid Margin="20,16,20,20" ColumnDefinitions="*,*" ColumnSpacing="16"
+                IsEnabled="{Binding CanEdit}">
+            <Border Classes="card">
+              <StackPanel Spacing="16">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="Engine" FontSize="17" FontWeight="SemiBold" />
+                  <TextBlock Text="Choose a built-in setup or load a custom JSON profile."
+                             Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Built-in profile" Foreground="#AAB3C4" />
+                  <ComboBox ItemsSource="{Binding EngineConfigurations}"
+                            SelectedItem="{Binding SelectedEngineConfiguration, Mode=TwoWay}"
+                            IsEnabled="{Binding CanSelectBuiltInEngineConfiguration}" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Custom profile" Foreground="#AAB3C4" />
+                  <TextBox Text="{Binding CustomEngineConfigurationPath, Mode=OneWay}"
+                           IsReadOnly="True"
+                           PlaceholderText="No custom JSON selected" />
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Button Content="Choose JSON…" Click="BrowseEngineProfile_OnClick"
+                            IsEnabled="{Binding CanEdit}" HorizontalAlignment="Stretch" />
+                    <Button Grid.Column="1" Content="Clear" Click="ClearEngineProfile_OnClick"
+                            IsVisible="{Binding HasCustomEngineConfiguration}"
+                            IsEnabled="{Binding CanEdit}" />
+                  </Grid>
+                  <TextBlock Text="{Binding EngineProfileSummary}" Foreground="#778197"
+                             FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Separator />
+
+                <StackPanel Spacing="3">
+                  <CheckBox Content="PC Only"
+                            IsChecked="{Binding PcOnly, Mode=TwoWay}"
+                            IsEnabled="{Binding CanEdit}" />
+                  <TextBlock Text="Disables joystick input when engine settings are applied."
+                             Margin="27,0,0,0" Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Classes="card">
+              <StackPanel Spacing="16">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="ReShade" FontSize="17" FontWeight="SemiBold" />
+                  <TextBlock Text="Select the effects TCO enables when ReShade is applied."
+                             Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Overlay shortcut" Foreground="#AAB3C4" />
+                  <ComboBox ItemsSource="{Binding ReShadeShortcuts}"
+                            SelectedItem="{Binding SelectedReShadeShortcut, Mode=TwoWay}"
+                            IsEnabled="{Binding CanEdit}" />
+                </StackPanel>
+
+                <StackPanel Spacing="3">
+                  <CheckBox Content="No blur"
+                            IsChecked="{Binding NoBlur, Mode=TwoWay}"
+                            IsEnabled="{Binding CanEdit}" />
+                  <TextBlock Text="Turns off distance atmosphere, depth of field, and motion blur effects."
+                             Margin="27,0,0,0" Foreground="#778197" FontSize="11" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <Separator />
+                <TextBlock Text="Image quality" Foreground="#AAB3C4" FontWeight="SemiBold" />
+                <ItemsControl ItemsSource="{Binding EssentialReShadeEffects}"
+                              ItemTemplate="{StaticResource ReShadeEffectTemplate}" />
+
+                <Separator />
+                <TextBlock Text="Depth and atmosphere" Foreground="#AAB3C4" FontWeight="SemiBold" />
+                <ItemsControl ItemsSource="{Binding DepthReShadeEffects}"
+                              ItemTemplate="{StaticResource ReShadeEffectTemplate}" />
+
+                <Separator />
+                <TextBlock Text="Color and style" Foreground="#AAB3C4" FontWeight="SemiBold" />
+                <ItemsControl ItemsSource="{Binding ColorReShadeEffects}"
+                              ItemTemplate="{StaticResource ReShadeEffectTemplate}" />
+              </StackPanel>
+            </Border>
+          </Grid>
         </ScrollViewer>
       </TabItem>
 
