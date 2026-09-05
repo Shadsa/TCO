@@ -31,9 +31,18 @@ public sealed class GraphicsStatusInspector(IDisplayResolutionService displays)
 
         var reshadeActive = activeKind == "ReShade";
         var dxvkActive = activeKind == "DXVK" || reshadeActive && proxyKind == "DXVK" && proxyEnabled;
-        var cinematicEnabled = File.Exists(files.ReShadePreset) &&
-            (File.ReadLines(files.ReShadePreset).FirstOrDefault() ?? string.Empty)
-            .Contains("CinematicDOF@CinematicDOF.fx", StringComparison.Ordinal);
+        var enabledTechniques = IniFile.GetPreambleValue(files.ReShadePreset, "Techniques") ?? string.Empty;
+        var activeTechniques = enabledTechniques
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var cinematicEnabled = activeTechniques.Contains("CinematicDOF@CinematicDOF.fx");
+        var noBlur = File.Exists(files.ReShadePreset) &&
+            !activeTechniques.Overlaps([
+                "DepthHaze@DepthHaze.fx",
+                "CinematicDOF@CinematicDOF.fx",
+                "ADOF@qUINT_dof.fx",
+                "LinearMotionBlur@LinearMotionBlur.fx"
+            ]);
 
         var reshade = new ReShadeConfiguration
         {
@@ -41,7 +50,8 @@ public sealed class GraphicsStatusInspector(IDisplayResolutionService displays)
             ActiveD3D9 = activeKind,
             ProxyEnabled = proxyEnabled,
             ProxyLibrary = proxyLibrary,
-            HomeKey = IniFile.GetValue(files.ReShadeConfig, "INPUT", "KeyOverlay") ?? string.Empty,
+            OverlayShortcut = IniFile.GetValue(files.ReShadeConfig, "INPUT", "KeyOverlay") ?? string.Empty,
+            EnabledTechniques = activeTechniques.Order(StringComparer.OrdinalIgnoreCase).ToArray(),
             DepthFormat = depthFormat,
             DepthResolution = $"{depthWidth}x{depthHeight}",
             PrimaryDisplayResolution = resolution.ToString(),
@@ -51,6 +61,7 @@ public sealed class GraphicsStatusInspector(IDisplayResolutionService displays)
             ShadersInstalled = Directory.Exists(files.ReShadeShaders),
             CinematicDofInstalled = File.Exists(Path.Combine(files.ReShadeShaders, "Shaders", "OtisFX", "CinematicDOF.fx")),
             CinematicDofEnabled = cinematicEnabled,
+            NoBlur = noBlur,
             RuntimeConfirmed = runtimeConfirmed,
             RuntimeModule = runtimeModule,
             RenderApi = renderApi,

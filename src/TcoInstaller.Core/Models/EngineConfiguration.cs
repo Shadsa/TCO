@@ -21,6 +21,8 @@ public sealed record EngineConfiguration
     public int ChecksTotal { get; init; }
     public string TexturePoolMb { get; init; } = string.Empty;
     public string Fxaa { get; init; } = string.Empty;
+    public string FpsCap { get; init; } = string.Empty;
+    public int MonitorRefreshRateHz { get; init; }
     public bool PcOnly { get; init; }
     public bool ConfigsLocked { get; init; }
     public Dictionary<string, string> Mismatches { get; init; } = [];

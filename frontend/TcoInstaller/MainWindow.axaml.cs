@@ -14,6 +14,7 @@ namespace TcoInstaller;
 public sealed partial class MainWindow : Window
 {
     private readonly InstallerRunner _runner;
+    private readonly InstallerOrchestrator _orchestrator;
     private readonly MainWindowViewModel _viewModel;
     private readonly ElevationEnvelope? _pendingRequest;
     private CancellationTokenSource? _runCancellation;
@@ -26,10 +27,10 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
 
-        var orchestrator = new InstallerOrchestrator();
-        _runner = new InstallerRunner(orchestrator);
+        _orchestrator = new InstallerOrchestrator();
+        _runner = new InstallerRunner(_orchestrator);
         _pendingRequest = ElevationService.ReadRequest(pendingRequestPayload);
-        _viewModel = new MainWindowViewModel(orchestrator.EngineConfigurations, orchestrator.DefaultEngineConfigurationId);
+        _viewModel = new MainWindowViewModel(_orchestrator.EngineConfigurations, _orchestrator.DefaultEngineConfigurationId);
         DataContext = _viewModel;
         ReadmeViewer.LinkClicked += (_, args) =>
         {
@@ -61,6 +62,37 @@ public sealed partial class MainWindow : Window
         if (folders.Count > 0)
             _viewModel.TeraRoot = folders[0].Path.LocalPath;
     }
+
+    private async void BrowseEngineProfile_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Select a custom TCO engine profile",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("TCO engine profile") { Patterns = ["*.json"] }
+            ]
+        });
+
+        if (files.Count == 0)
+            return;
+
+        try
+        {
+            var path = files[0].Path.LocalPath;
+            var configuration = _orchestrator.LoadCustomEngineConfiguration(path);
+            _viewModel.SetCustomEngineConfiguration(path, configuration);
+            _viewModel.StatusText = $"Custom engine profile ready: {configuration.Name}";
+        }
+        catch (Exception exception)
+        {
+            _viewModel.StatusText = exception.Message;
+        }
+    }
+
+    private void ClearEngineProfile_OnClick(object? sender, RoutedEventArgs e) =>
+        _viewModel.ClearCustomEngineConfiguration();
 
     private async void Action_OnClick(object? sender, RoutedEventArgs e)
     {

@@ -32,6 +32,44 @@ public static class IniFile
         return null;
     }
 
+    /// <summary>Reads a key placed before the first INI section, as used by ReShade preset files.</summary>
+    public static string? GetPreambleValue(string path, string key)
+    {
+        if (!File.Exists(path))
+            return null;
+
+        var keyPattern = new Regex($"^\\s*{Regex.Escape(key)}\\s*=\\s*(.*?)\\s*$", RegexOptions.IgnoreCase);
+        foreach (var line in File.ReadLines(path))
+        {
+            if (SectionPattern.IsMatch(line))
+                break;
+            if (keyPattern.Match(line) is { Success: true } match)
+                return match.Groups[1].Value;
+        }
+        return null;
+    }
+
+    /// <summary>Updates a key before the first INI section while preserving all unrelated preset content.</summary>
+    public static void SetPreambleValue(string path, string key, string value)
+    {
+        if (value.Contains('\r') || value.Contains('\n'))
+            throw new InvalidDataException($"INI value {key} contains a line break.");
+
+        var lines = File.ReadAllLines(path).ToList();
+        var preambleEnd = lines.FindIndex(line => SectionPattern.IsMatch(line));
+        if (preambleEnd < 0)
+            preambleEnd = lines.Count;
+        var keyPattern = new Regex($"^\\s*{Regex.Escape(key)}\\s*=", RegexOptions.IgnoreCase);
+        var matches = Enumerable.Range(0, preambleEnd).Where(index => keyPattern.IsMatch(lines[index])).ToArray();
+        if (matches.Length > 1)
+            throw new InvalidDataException($"Ambiguous duplicate {key} entries before the first section of {path}.");
+        if (matches.Length == 0)
+            lines.Insert(0, $"{key}={value}");
+        else
+            lines[matches[0]] = $"{key}={value}";
+        File.WriteAllLines(path, lines, new UTF8Encoding(false));
+    }
+
     public static void SetValue(string path, string section, string key, string value, bool rejectDuplicates = true) =>
         SetValues(path, section, new Dictionary<string, string> { [key] = value }, rejectDuplicates);
 

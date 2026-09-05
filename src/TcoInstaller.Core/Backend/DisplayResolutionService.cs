@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 
 namespace TcoInstaller.Backend;
 
-/// <summary>Abstracts primary-display lookup for production code and deterministic tests.</summary>
+/// <summary>Abstracts primary-display mode lookup for production code and deterministic tests.</summary>
 public interface IDisplayResolutionService
 {
     DisplayResolution GetPrimaryResolution();
 }
 
-/// <summary>Reads the active primary display resolution through the Windows display API.</summary>
+/// <summary>Reads the active primary display resolution and refresh rate through the Windows display API.</summary>
 public sealed class DisplayResolutionService : IDisplayResolutionService
 {
     private const int EnumCurrentSettings = -1;
@@ -22,9 +22,9 @@ public sealed class DisplayResolutionService : IDisplayResolutionService
         var mode = new DevMode { Size = (short)Marshal.SizeOf<DevMode>() };
         if (!EnumDisplaySettings(null, EnumCurrentSettings, ref mode))
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not read the primary display mode.");
-        if (mode.PelsWidth <= 0 || mode.PelsHeight <= 0)
-            throw new InvalidOperationException("The primary display returned an invalid resolution.");
-        return new DisplayResolution(mode.PelsWidth, mode.PelsHeight);
+        if (mode.PelsWidth <= 0 || mode.PelsHeight <= 0 || mode.DisplayFrequency is <= 1 or > 1000)
+            throw new InvalidOperationException("The primary display returned an invalid display mode.");
+        return new DisplayResolution(mode.PelsWidth, mode.PelsHeight, mode.DisplayFrequency);
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
@@ -66,8 +66,8 @@ public sealed class DisplayResolutionService : IDisplayResolutionService
     }
 }
 
-/// <summary>Width and height of the primary display used by Generic Depth filtering.</summary>
-public sealed record DisplayResolution(int Width, int Height)
+/// <summary>Primary display mode used by Generic Depth filtering and the engine FPS cap.</summary>
+public sealed record DisplayResolution(int Width, int Height, int RefreshRateHz)
 {
     public override string ToString() => $"{Width}x{Height}";
 }

@@ -25,7 +25,11 @@ public sealed record InstallerRequest(
     bool IncludeClassicPlus,
     bool CheckForUpdates,
     string? EngineConfigurationId = null,
-    bool PcOnly = false);
+    bool PcOnly = false,
+    bool NoBlur = false,
+    string? CustomEngineConfigurationPath = null,
+    IReadOnlyDictionary<string, bool>? ReShadeTechniques = null,
+    string? ReShadeOverlayShortcut = null);
 
 /// <summary>Versioned UAC transport wrapper for an installer request.</summary>
 public sealed record ElevationEnvelope(

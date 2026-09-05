@@ -19,9 +19,9 @@ public sealed class InstallerOrchestrator
     public InstallerOrchestrator()
     {
         _payload = new PayloadStore();
-        _engine = new EngineConfigurationService(_payload);
-        _classicPlus = new ClassicPlusService(_payload);
         var displays = new DisplayResolutionService();
+        _engine = new EngineConfigurationService(_payload, displays);
+        _classicPlus = new ClassicPlusService(_payload);
         var registry = new VulkanLayerRegistry();
         _graphics = new GraphicsPipelineService(_payload, _engine, displays, registry);
         _status = new StatusService(_engine, new GraphicsStatusInspector(displays), _classicPlus);
@@ -30,6 +30,7 @@ public sealed class InstallerOrchestrator
 
     public IReadOnlyList<EngineConfiguration> EngineConfigurations => _engine.Configurations;
     public string DefaultEngineConfigurationId => _engine.DefaultConfigurationId;
+    public EngineConfiguration LoadCustomEngineConfiguration(string path) => _engine.LoadCustom(path);
 
     public async Task<InstallationSnapshot?> RunAsync(
         InstallerRequest request,
@@ -101,15 +102,22 @@ public sealed class InstallerOrchestrator
     {
         ProcessGuard.AssertClosed(context.Request.IncludeClassicPlus);
         if (context.Request.IncludeClassicPlus) _classicPlus.AssertInstalled();
-        var configuration = _engine.Resolve(context.Request.EngineConfigurationId);
+        var configuration = _engine.Resolve(context.Request.EngineConfigurationId, context.Request.CustomEngineConfigurationPath);
         return await ExecuteMutationAsync(context, true, async transaction =>
         {
             context.Report("engine", "started", $"Applying {configuration.Name}.");
-            _engine.Apply(context.Paths, transaction, configuration.Id, context.Request.PcOnly);
-            context.Report("engine", "completed", $"Applied {_engine.GetCount(configuration.Id)} engine settings from {configuration.Name}; PC Only is {(context.Request.PcOnly ? "enabled" : "disabled")}.");
+            _engine.Apply(context.Paths, transaction, configuration, context.Request.PcOnly);
+            context.Report("engine", "completed", $"Applied {_engine.GetCount(configuration)} engine settings from {configuration.Name}; PC Only is {(context.Request.PcOnly ? "enabled" : "disabled")}.");
             context.Report("graphics", "started", "Installing and validating DXVK and ReShade.");
-            await _graphics.EnablePipelineAsync(context.Paths, transaction, context.CancellationToken);
-            context.Report("graphics", "completed", "DXVK and ReShade installed.");
+            await _graphics.EnablePipelineAsync(
+                context.Paths,
+                transaction,
+                context.CancellationToken,
+                context.Request.NoBlur,
+                context.Request.ReShadeTechniques,
+                context.Request.ReShadeOverlayShortcut,
+                _engine.GetManagedFxaa(configuration));
+            context.Report("graphics", "completed", $"DXVK and ReShade installed; No blur is {(context.Request.NoBlur ? "enabled" : "disabled")}.");
             if (context.Request.IncludeClassicPlus)
             {
                 context.Report("classicplus", "started", "Applying TCC and Shinra profiles.");
@@ -123,12 +131,12 @@ public sealed class InstallerOrchestrator
     private Task<InstallationSnapshot> ApplyEngineAsync(OperationContext context)
     {
         ProcessGuard.AssertClosed(false);
-        var configuration = _engine.Resolve(context.Request.EngineConfigurationId);
+        var configuration = _engine.Resolve(context.Request.EngineConfigurationId, context.Request.CustomEngineConfigurationPath);
         return ExecuteMutationAsync(context, true, transaction =>
         {
             context.Report("engine", "started", $"Applying {configuration.Name}.");
-            _engine.Apply(context.Paths, transaction, configuration.Id, context.Request.PcOnly);
-            context.Report("engine", "completed", $"Applied {_engine.GetCount(configuration.Id)} engine settings from {configuration.Name}; PC Only is {(context.Request.PcOnly ? "enabled" : "disabled")}.");
+            _engine.Apply(context.Paths, transaction, configuration, context.Request.PcOnly);
+            context.Report("engine", "completed", $"Applied {_engine.GetCount(configuration)} engine settings from {configuration.Name}; PC Only is {(context.Request.PcOnly ? "enabled" : "disabled")}.");
             context.Skip("graphics", "Graphics configuration is not part of this action.");
             context.Skip("classicplus", "Classic+ configuration is not part of this action.");
             return Task.CompletedTask;
@@ -151,7 +159,13 @@ public sealed class InstallerOrchestrator
 
     private Task<InstallationSnapshot> EnableReShadeAsync(OperationContext context) =>
         ExecuteGraphicsMutationAsync(context, true, "Activating ReShade while preserving the current DXVK state.", "ReShade activated.",
-            transaction => _graphics.EnableReShadeAsync(context.Paths, transaction, context.CancellationToken));
+            transaction => _graphics.EnableReShadeAsync(
+                context.Paths,
+                transaction,
+                context.CancellationToken,
+                context.Request.NoBlur,
+                context.Request.ReShadeTechniques,
+                context.Request.ReShadeOverlayShortcut));
 
     private Task<InstallationSnapshot> DisableReShadeAsync(OperationContext context) =>
         ExecuteGraphicsMutationAsync(context, true, "Deactivating ReShade while preserving the current DXVK state.", "ReShade deactivated.",
@@ -232,7 +246,7 @@ public sealed class InstallerOrchestrator
         context.Skip("engine", "Status mode does not change engine values.");
         context.Skip("graphics", "Status mode does not change graphics files.");
         context.Skip("classicplus", "Status mode does not change Classic+ profiles.");
-        return Verify(context.Paths, context.Progress, context.Log);
+        return Verify(context.Paths, context.Progress, context.Log, context.Request.CustomEngineConfigurationPath);
     }
 
     /// <summary>
@@ -250,7 +264,7 @@ public sealed class InstallerOrchestrator
             if (manageConfigLocks) SetConfigLock(context.Paths, false);
             await mutate(transaction);
             if (manageConfigLocks) SetConfigLock(context.Paths, true);
-            var snapshot = Verify(context.Paths, context.Progress, context.Log);
+            var snapshot = Verify(context.Paths, context.Progress, context.Log, context.Request.CustomEngineConfigurationPath);
             transaction.Commit();
             return snapshot;
         }
@@ -260,10 +274,17 @@ public sealed class InstallerOrchestrator
         }
     }
 
-    private InstallationSnapshot Verify(TeraPaths paths, IProgress<InstallerProgress> progress, Action<string> log)
+    private InstallationSnapshot Verify(
+        TeraPaths paths,
+        IProgress<InstallerProgress> progress,
+        Action<string> log,
+        string? customEngineConfigurationPath = null)
     {
         Report(progress, log, "verification", "started", "Inspecting the current configuration.");
-        var snapshot = _status.Inspect(paths);
+        var customConfiguration = string.IsNullOrWhiteSpace(customEngineConfigurationPath)
+            ? null
+            : _engine.LoadCustom(customEngineConfigurationPath);
+        var snapshot = _status.Inspect(paths, customConfiguration);
         log(StatusService.Format(snapshot));
         Report(progress, log, "verification", "completed", "Configuration inspection completed.");
         return snapshot;
